@@ -109,14 +109,11 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 	}
 
 	private void sendEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, T object) throws SerializerException, ODataException {
-		   // 3. serialize the response (we have to return the created entity)
 		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
 		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
-		  //expand and select currently not supported
 		  EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
 		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
 		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, options);
-		  //4. configure the response object
 		  response.setContent(serializedResponse.getContent());
 		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
 		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
@@ -133,9 +130,7 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 
 	@Override
 	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
-		// 1. retrieve the Entity Type
 	    List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-	    // Note: only in our example we can assume that the first segment is the EntitySet
 	    UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0);
 	    EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
 	    ODataParamValue params[]  = getKeyPredicates(uriInfo);
@@ -152,10 +147,8 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 
 	@Override
 	public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
-		 // 1. Retrieve the entity type from the URI
 		  EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
 		  EdmEntityType edmEntityType = edmEntitySet.getEntityType();
-		  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
 		  InputStream requestInputStream = request.getBody();
 		  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
 		  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
@@ -177,9 +170,7 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 	/// Helper methods
 	
 	private EdmEntitySet getEdmEntitySet(UriInfoResource uriInfo) throws ODataApplicationException {
-
         List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-         // To get the entity set we have to interpret all URI segments
         if (!(resourcePaths.get(0) instanceof UriResourceEntitySet)) {
             throw new ODataApplicationException("Invalid resource type for first segment.",
                       HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ENGLISH);
