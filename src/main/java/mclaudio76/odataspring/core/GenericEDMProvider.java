@@ -14,11 +14,11 @@ import org.apache.olingo.commons.api.ex.ODataException;
 
 public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 
-	public String NAMESPACE 	 = "";   //"OData.Demo";
-	public String CONTAINER_NAME = "";  //"Container";
+	public String NAMESPACE 	 = "";   
+	public String CONTAINER_NAME = "";  
 	
-	public String HANDLED_ENTITY_NAME = ""; 	//"Product";
-	public String HANDLED_ENTITY_SET_NAME = "";	//"Products";
+	public String HANDLED_ENTITY_NAME 		= ""; 
+	public String HANDLED_ENTITY_SET_NAME 	= "";	
 	private ODataEntityHelper annotationHelper  = new ODataEntityHelper();
 	
 	public FullQualifiedName ENTITY_FULL_QUALIFIED_NAME = null;
@@ -75,8 +75,6 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 
 	@Override
 	public CsdlEntityType getEntityType(FullQualifiedName entityTypeName) throws ODataException {
-		// this method is called for one of the EntityTypes that are configured in the Schema
-	
 	  if(entityTypeName.equals(ENTITY_FULL_QUALIFIED_NAME)){
 			CsdlEntityType entityType = new CsdlEntityType();
 			entityType.setName(HANDLED_ENTITY_NAME);
@@ -90,22 +88,14 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 
 	@Override
 	public List<CsdlSchema> getSchemas() throws ODataException {
-		// create Schema
 		  CsdlSchema schema = new CsdlSchema();
 		  schema.setNamespace(NAMESPACE);
-
-		  // add EntityTypes
 		  List<CsdlEntityType> entityTypes = new ArrayList<CsdlEntityType>();
 		  entityTypes.add(getEntityType(ENTITY_FULL_QUALIFIED_NAME));
 		  schema.setEntityTypes(entityTypes);
-
-		  // add EntityContainer
 		  schema.setEntityContainer(getEntityContainer());
-
-		  // finally
 		  List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
 		  schemas.add(schema);
-
 		  return schemas;
 	}
 
