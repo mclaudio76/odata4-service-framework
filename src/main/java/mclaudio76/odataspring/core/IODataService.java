@@ -13,10 +13,10 @@ public interface IODataService<T> {
 	// Creates a new entity
 	public T create(ODataParamValue ... values);
 	
-	// Creates a new entity
+	// Deletes a new entity
 	public void delete(ODataParamValue ... keys);
 	
-	// Creates a new entity
+	// Update an existing entity
 	public T update(ODataParamValue ... values);
 	
 	// Return actual handled entity class name
