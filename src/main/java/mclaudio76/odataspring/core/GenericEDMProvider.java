@@ -24,7 +24,7 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 	public FullQualifiedName ENTITY_FULL_QUALIFIED_NAME = null;
 	public FullQualifiedName CONTAINER = null;
 	
-	private Class ODataEntity = null;
+	private Class<?> ODataEntity = null;
 	
 	
 	public GenericEDMProvider(String nameSpace, String containerName, Class<?> ODataEntity) throws Exception {
