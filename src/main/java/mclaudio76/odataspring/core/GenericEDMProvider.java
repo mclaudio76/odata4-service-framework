@@ -40,21 +40,16 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 	
 	@Override
 	public CsdlEntityContainer getEntityContainer() throws ODataException {
-		// create EntitySets
 		  List<CsdlEntitySet> entitySets = new ArrayList<>();
 		  entitySets.add(getEntitySet(CONTAINER, HANDLED_ENTITY_SET_NAME));
-
-		  // create EntityContainer
 		  CsdlEntityContainer entityContainer = new CsdlEntityContainer();
 		  entityContainer.setName(CONTAINER_NAME);
 		  entityContainer.setEntitySets(entitySets);
-
 		  return entityContainer;
 	}
 
 	@Override
 	public CsdlEntityContainerInfo getEntityContainerInfo(FullQualifiedName entityContainerName) throws ODataException {
-		// This method is invoked when displaying the Service Document at e.g. http://localhost:8080/DemoService/DemoService.svc
 	    if (entityContainerName == null || entityContainerName.equals(CONTAINER)) {
 	        CsdlEntityContainerInfo entityContainerInfo = new CsdlEntityContainerInfo();
 	        entityContainerInfo.setContainerName(CONTAINER);
