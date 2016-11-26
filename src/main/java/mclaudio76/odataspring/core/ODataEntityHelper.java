@@ -12,7 +12,13 @@ import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.ex.ODataException;
-	
+
+/****
+ * Helper class.
+ * 
+ *
+ */
+
 public class ODataEntityHelper {
 	
 	public String getEntityName(Class<?> clz) throws ODataException {
