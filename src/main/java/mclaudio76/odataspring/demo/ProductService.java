@@ -37,7 +37,7 @@ public class ProductService implements IODataService<Product> {
 	@Override
 	public Product create(ODataParamValue... values) {
 		Product product = new Product();
-		helper.setFieldsValueFromEntity(product, values);
+		helper.setFieldsValue(product, values);
 		products.add(product);
 		return product;
 	}
@@ -51,8 +51,11 @@ public class ProductService implements IODataService<Product> {
 	}
 
 	@Override
-	public Product update(ODataParamValue... values) {
-		return null;
+	public Product update(Product target, ODataParamValue... values) {
+		if(target != null) {
+			helper.setFieldsValue(target, values);
+		}
+		return target;
 	}
 
 	@Override

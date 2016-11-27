@@ -58,4 +58,15 @@ public class Endpoint<T> extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		process(request,response);
 	}
+	
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		process(request,response);
+	}
+	
+	protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		process(request,response);
+	}
 }

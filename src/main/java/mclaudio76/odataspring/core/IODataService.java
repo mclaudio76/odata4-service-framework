@@ -17,7 +17,7 @@ public interface IODataService<T> {
 	public void delete(ODataParamValue ... keys);
 	
 	// Update an existing entity
-	public T update(ODataParamValue ... values);
+	public T update(T target, ODataParamValue ... values);
 	
 	// Return actual handled entity class name
 	public Class<T> getEntityClass();
