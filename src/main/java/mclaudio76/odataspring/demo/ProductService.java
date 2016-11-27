@@ -40,7 +40,7 @@ public class ProductService implements IODataService<Product> {
 		helper.setFieldsValue(product, values);
 		products.add(product);
 		return product;
-	}
+	} 
 
 	@Override
 	public void delete(ODataParamValue... keys) {
