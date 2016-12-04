@@ -12,6 +12,10 @@ public class ApplicationConfiguration {
 	
 	@Bean
 	public ServletRegistrationBean servletRegistrationBean(){
-	    return new ServletRegistrationBean(new Endpoint<Product>("Demo", new ProductService()),"/ProductService/*");
+		Endpoint endPoint = new Endpoint("Demo");
+		endPoint.addEntity(Product.class);
+	    return new ServletRegistrationBean(endPoint,"/ProductService/*");
 	}
+	
+	
 }

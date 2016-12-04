@@ -14,34 +14,89 @@ import org.apache.olingo.commons.api.ex.ODataException;
 
 public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 
-	public String NAMESPACE 	 = "";   
-	public String CONTAINER_NAME = "";  
+	public String NAMESPACE 	 = "";   //"OData.Demo";
+	public String CONTAINER_NAME = "";  //"Container";
 	
-	public String HANDLED_ENTITY_NAME 		= ""; 
-	public String HANDLED_ENTITY_SET_NAME 	= "";	
 	private ODataEntityHelper annotationHelper  = new ODataEntityHelper();
 	
-	public FullQualifiedName ENTITY_FULL_QUALIFIED_NAME = null;
 	public FullQualifiedName CONTAINER = null;
 	
-	private Class<?> ODataEntity = null;
+	private ArrayList<ExposedEntity> exposedEntities = new ArrayList<ExposedEntity>();
 	
+	class ExposedEntity {
+		String handledEntityName 		= "";
+		String handledEntitySetName 	= "";
+		Class<?> entityClass 			= null;
+		FullQualifiedName entityFQN 	= null;
+		
+		public ExposedEntity(Class<?> entityClass) throws Exception {
+			this.entityClass = entityClass;
+			handledEntityName 			= annotationHelper.getEntityName(entityClass);
+			handledEntitySetName 		= annotationHelper.getEntitySetName(entityClass);
+			entityFQN					= new FullQualifiedName(NAMESPACE, handledEntityName);
+		}
+
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((entityFQN == null) ? 0 : entityFQN.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			ExposedEntity other = (ExposedEntity) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (entityFQN == null) {
+				if (other.entityFQN != null)
+					return false;
+			} else if (!entityFQN.equals(other.entityFQN))
+				return false;
+			return true;
+		}
+
+
+		private GenericEDMProvider getOuterType() {
+			return GenericEDMProvider.this;
+		}
+	}
 	
-	public GenericEDMProvider(String nameSpace, String containerName, Class<?> ODataEntity) throws Exception {
+	public GenericEDMProvider(String nameSpace, String containerName) throws Exception {
 		NAMESPACE 						= nameSpace;
 		CONTAINER_NAME  				= containerName;
-		this.ODataEntity				= ODataEntity;
-		HANDLED_ENTITY_NAME 			= annotationHelper.getEntityName(ODataEntity);
-		HANDLED_ENTITY_SET_NAME 		= annotationHelper.getEntitySetName(ODataEntity);
-		ENTITY_FULL_QUALIFIED_NAME		= new FullQualifiedName(NAMESPACE, HANDLED_ENTITY_NAME);
 		CONTAINER       				= new FullQualifiedName(NAMESPACE, CONTAINER_NAME);
 	}
+	
+	
+	public GenericEDMProvider addEntity(Class<?> oDataEntity)  throws Exception{
+		ExposedEntity entity = new ExposedEntity(oDataEntity);
+		if(!exposedEntities.contains(entity)) {
+			exposedEntities.add(entity);
+		}
+		else {
+			log(" Entity "+oDataEntity.getName()+" already published as ODataResource.");
+		}
+		return this;
+	}
+	
 	
 	
 	@Override
 	public CsdlEntityContainer getEntityContainer() throws ODataException {
 		  List<CsdlEntitySet> entitySets = new ArrayList<>();
-		  entitySets.add(getEntitySet(CONTAINER, HANDLED_ENTITY_SET_NAME));
+		  for(ExposedEntity entity : exposedEntities) {
+			  entitySets.add(getEntitySet(CONTAINER, entity.handledEntitySetName));
+		  }
 		  CsdlEntityContainer entityContainer = new CsdlEntityContainer();
 		  entityContainer.setName(CONTAINER_NAME);
 		  entityContainer.setEntitySets(entitySets);
@@ -55,48 +110,61 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 	        entityContainerInfo.setContainerName(CONTAINER);
 	        return entityContainerInfo;
 	    }
-
 	    return null;
 	}
 
 	@Override
 	public CsdlEntitySet getEntitySet(FullQualifiedName entityContainer, String entitySetName) throws ODataException {
 		if(entityContainer.equals(CONTAINER)){
-		    if(entitySetName.equals(HANDLED_ENTITY_SET_NAME)){
-		      CsdlEntitySet entitySet = new CsdlEntitySet();
-		      entitySet.setName(HANDLED_ENTITY_SET_NAME);
-		      entitySet.setType(ENTITY_FULL_QUALIFIED_NAME);
-
-		      return entitySet;
-		    }
-		  }
+			for(ExposedEntity entity : exposedEntities) {
+				if(entitySetName.equals(entity.handledEntitySetName)){
+				      CsdlEntitySet entitySet = new CsdlEntitySet();
+				      entitySet.setName(entity.handledEntityName);
+				      entitySet.setType(entity.entityFQN);
+				      return entitySet;
+				}	
+			}
+		}
 		return null;
 	}
 
 	@Override
 	public CsdlEntityType getEntityType(FullQualifiedName entityTypeName) throws ODataException {
-	  if(entityTypeName.equals(ENTITY_FULL_QUALIFIED_NAME)){
-			CsdlEntityType entityType = new CsdlEntityType();
-			entityType.setName(HANDLED_ENTITY_NAME);
-		    entityType.setProperties(annotationHelper.getClassAttributes(ODataEntity));
-		    entityType.setKey(annotationHelper.getClassKeys(ODataEntity));
-		    return entityType;
-  	   }
+		for(ExposedEntity entity : exposedEntities) {
+		  if(entityTypeName.equals(entity.entityFQN)){
+				CsdlEntityType entityType = new CsdlEntityType();
+				entityType.setName(entity.handledEntityName);
+			    entityType.setProperties(annotationHelper.getClassAttributes(entity.entityClass));
+			    entityType.setKey(annotationHelper.getClassKeys(entity.entityClass));
+			    return entityType;
+	  	   }
+		}
  	   return null;
 	
 	}
 
 	@Override
 	public List<CsdlSchema> getSchemas() throws ODataException {
+		// create Schema
 		  CsdlSchema schema = new CsdlSchema();
 		  schema.setNamespace(NAMESPACE);
 		  List<CsdlEntityType> entityTypes = new ArrayList<CsdlEntityType>();
-		  entityTypes.add(getEntityType(ENTITY_FULL_QUALIFIED_NAME));
+		  // add EntityTypes
+		  for(ExposedEntity entity : exposedEntities) {
+			  entityTypes.add(getEntityType(entity.entityFQN));
+		  }
 		  schema.setEntityTypes(entityTypes);
+		  // add EntityContainer
 		  schema.setEntityContainer(getEntityContainer());
+		  // finally
 		  List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
 		  schemas.add(schema);
+
 		  return schemas;
+	}
+	
+	private void log(String mex) {
+		System.out.println(this.getClass().getName()+" >> "+mex);
 	}
 
 }

@@ -8,7 +8,7 @@ import mclaudio76.odataspring.core.ODataField;
 
 	
 
-@ODataEntity(entityName="Product",entitySetName="Products")
+@ODataEntity(entityName="Product",entitySetName="Products", controller=ProductService.class)
 public class Product {
 	
 	@ODataField(isKey=true, ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.Int32)

@@ -12,17 +12,8 @@ import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.ex.ODataException;
-
-
-/****
- * Helper class.
- * 
- *
- */
-
+	
 public class ODataEntityHelper {
-
-	public enum PropertyType {ALL,KEYS,ORDINARY};
 	
 	public String getEntityName(Class<?> clz) throws ODataException {
 		if(clz.isAnnotationPresent(ODataEntity.class)) {
@@ -44,6 +35,20 @@ public class ODataEntityHelper {
 		}
 	}
 	
+	public IODataService getController(Class<?> clz) throws ODataException {
+		try {
+			if(clz.isAnnotationPresent(ODataEntity.class)) {
+				ODataEntity metaData = (ODataEntity) clz.getAnnotation(ODataEntity.class);
+				return  metaData.controller().newInstance();
+			}
+			else {
+				throw new ODataException("Object isn't annotated with @ODataEntity ");
+			}
+		}
+		catch(InstantiationException | IllegalAccessException ie) {
+			throw new ODataException("Unable to instantiate a controller.");
+		}
+	}
 	
 	
 	
@@ -160,7 +165,7 @@ public class ODataEntityHelper {
 	
 	
 	
-	public void setFieldsValue(Object object, ODataParamValue ... attributes) {
+	public void setFieldsValueFromEntity(Object object, ODataParamValue ... attributes) {
 		for(ODataParamValue paramValue : attributes) {
 			try {
 				object.getClass().getDeclaredField(paramValue.propertyName).set(object, paramValue.value);
@@ -172,7 +177,7 @@ public class ODataEntityHelper {
 	}
 	
 	public boolean entityMatchesKeys(Object object, ODataParamValue ... attributes) {
-		boolean matches = attributes.length > 0;
+		boolean matches = true;
 		for(ODataParamValue paramValue : attributes) {
 			try {
 				Object keyValue    = object.getClass().getDeclaredField(paramValue.propertyName).get(object);
@@ -190,82 +195,6 @@ public class ODataEntityHelper {
 			}
 		}
 		return matches;
-	}
-	
-	public ODataParamValue[] propertySubList(Class<?> clz, PropertyType type, ODataParamValue ... lst) {
-		List<ODataParamValue>  k = new ArrayList<>();
-		for(ODataParamValue p : lst) {
-			boolean isKey = isKeyForObject(p.propertyName, clz); 
-			if(type == PropertyType.KEYS) {
-				if(isKey) {
-					k.add(p);
-				}
-			}
-			if(type == PropertyType.ORDINARY) {
-				if(!isKey) {
-					k.add(p);
-				}
-			}
-			if(type == PropertyType.ALL) {
-				k.add(p);
-			}
-		}
-		return k.toArray(new ODataParamValue[k.size()]);
-	}
-	
-	public boolean isKeyForObject(String propertyName, Class<?> clz) {
-		try {
-			for(Field field : clz.getDeclaredFields()) {
-				if(field.isAnnotationPresent(ODataField.class)) {
-					if(field.getAnnotation(ODataField.class).name().trim().equals(propertyName)) {
-						return field.getAnnotation(ODataField.class).isKey();
-					}
-				}
-			}
-			return false;
-		}
-		catch(Exception e) {
-			return false;
-		}
-	}
-	
-	private Object getPropertyValue(String propertyName, Object object) throws ODataException {
-		try {
-			for(Field field : object.getClass().getDeclaredFields()) {
-				if(field.isAnnotationPresent(ODataField.class)) {
-					if(field.getAnnotation(ODataField.class).name().trim().equals(propertyName)) {
-						return field.get(object);
-					}
-					if(field.getName().trim().equals(propertyName)) {
-						return field.get(object);
-					}
-				}
-			}
-			throw new ODataException("Required property ["+propertyName+"] is not found ");
-		}
-		catch(Exception e) {
-			throw new ODataException("Required property ["+propertyName+"] is not found ");
-		}
-	}
-	
-	private void setPropertyValue(String propertyName, Object object, Object value) throws ODataException {
-		try {
-			
-			for(Field field : object.getClass().getDeclaredFields()) {
-				if(field.isAnnotationPresent(ODataField.class)) {
-					if(field.getAnnotation(ODataField.class).name().trim().equals(propertyName)) {
-						field.get(object);
-					}
-					if(field.getName().trim().equals(propertyName)) {
-						field.get(object);
-					}
-				}
-			}
-			throw new ODataException("Required property ["+propertyName+"] is not found ");
-		}
-		catch(Exception e) {
-			throw new ODataException("Required property ["+propertyName+"] is not found ");
-		}
 	}
 	
 	

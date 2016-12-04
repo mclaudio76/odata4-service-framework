@@ -1,7 +1,6 @@
 package mclaudio76.odataspring.core;
 
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -12,9 +11,6 @@ import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
-import org.apache.olingo.commons.api.edm.EdmProperty;
-import org.apache.olingo.commons.api.edm.EdmType;
 import org.apache.olingo.commons.api.ex.ODataException;
 import org.apache.olingo.commons.api.format.ContentType;
 import org.apache.olingo.commons.api.http.HttpHeader;
@@ -30,11 +26,9 @@ import org.apache.olingo.server.api.deserializer.DeserializerResult;
 import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.apache.olingo.server.api.processor.EntityCollectionProcessor;
 import org.apache.olingo.server.api.processor.EntityProcessor;
-import org.apache.olingo.server.api.processor.PrimitiveProcessor;
 import org.apache.olingo.server.api.serializer.EntityCollectionSerializerOptions;
 import org.apache.olingo.server.api.serializer.EntitySerializerOptions;
 import org.apache.olingo.server.api.serializer.ODataSerializer;
-import org.apache.olingo.server.api.serializer.PrimitiveSerializerOptions;
 import org.apache.olingo.server.api.serializer.SerializerException;
 import org.apache.olingo.server.api.serializer.SerializerResult;
 import org.apache.olingo.server.api.uri.UriInfo;
@@ -42,18 +36,15 @@ import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
-import org.apache.olingo.server.api.uri.UriResourceKind;
-import org.apache.olingo.server.api.uri.UriResourcePrimitiveProperty;
-import org.apache.olingo.server.api.uri.UriResourceProperty;
 
 /****
  * 
  * Note: the first segment of the service urls corresponds to entity set.
- * 
+ *
  * 
  */
 
-public class AbstractODataService<T> implements EntityCollectionProcessor, EntityProcessor, PrimitiveProcessor {
+public class AbstractODataService<T> implements EntityCollectionProcessor, EntityProcessor {
 	private OData 				initODataItem;
 	private ServiceMetadata 	initServiceMetaData;
 	private ODataEntityHelper 	oDataHelper;
@@ -117,7 +108,19 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 		}
 	}
 
-	
+	private void sendEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, T object) throws SerializerException, ODataException {
+		   // 3. serialize the response (we have to return the created entity)
+		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
+		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
+		  //expand and select currently not supported
+		  EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
+		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
+		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, options);
+		  //4. configure the response object
+		  response.setContent(serializedResponse.getContent());
+		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
+		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+	}
 
 	@Override
 	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
@@ -130,7 +133,9 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 
 	@Override
 	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
+		// 1. retrieve the Entity Type
 	    List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
+	    // Note: only in our example we can assume that the first segment is the EntitySet
 	    UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0);
 	    EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
 	    ODataParamValue params[]  = getKeyPredicates(uriInfo);
@@ -147,9 +152,10 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 
 	@Override
 	public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
-		  EdmEntitySet edmEntitySet      = getEdmEntitySet(uriInfo);
-		  ODataParamValue keyParams[]    = getKeyPredicates(uriInfo);
-		  EdmEntityType edmEntityType    = edmEntitySet.getEntityType();
+		 // 1. Retrieve the entity type from the URI
+		  EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
+		  EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+		  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
 		  InputStream requestInputStream = request.getBody();
 		  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
 		  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
@@ -159,10 +165,7 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 			  attributes.add(new ODataParamValue(prop));
 		  }
 		  try {
-			  T target	= businessService.findByKey(keyParams);
-			  if(target != null) {
-				 businessService.update(target, attributes.toArray(new ODataParamValue[attributes.size()]));
-			  }
+			  T target	= businessService.update(attributes.toArray(new ODataParamValue[attributes.size()]));
 			  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
 		  }
 		  catch(Exception e) {
@@ -171,89 +174,12 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 		
 	}
 	
-	
-	
-	/**********
-	 * Primitive processor.
-	 * 
-	 */
-	
-	@Override
-	public void readPrimitive(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException, SerializerException {
-		List<UriResource> resourcePaths 				= uriInfo.getUriResourceParts();
-	    UriResourceEntitySet uriResourceEntitySet 		= (UriResourceEntitySet) resourcePaths.get(0);
-	    UriResourcePrimitiveProperty requestedProperty 	= findRequestedProperty(resourcePaths);
-	    EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
-	    ODataParamValue params[]  = getKeyPredicates(uriInfo);
-	    try {
-	    	if(requestedProperty != null) {
-	    		T readEntity  				= businessService.findByKey(params);  
-	    		EdmProperty	edmProperty	    = requestedProperty.getProperty();
-	    		if(readEntity == null) {
-	    			throw new ODataApplicationException("Entity not found", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ENGLISH);
-	    		}
-	    		else {
-	    			Entity oDataEntity 			= oDataHelper.buildEntity(readEntity);
-	    			Property property 			= oDataEntity.getProperty(edmProperty.getName());
-	    			if (property == null) {
-	    				throw new ODataApplicationException("Property not found", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ENGLISH);
-	    			}
-	    			serializeProperty(property, edmEntitySet, edmProperty, response, responseFormat);
-	    		}
-	    	}
-	    }
-	    catch(Exception e) {
-	    	if(e instanceof ODataApplicationException) {
-	    		throw (ODataApplicationException)e;
-	    	}
-	    	if(e instanceof ODataLibraryException) {
-	    		throw (ODataApplicationException) e;
-	    	}
-	    	throw new ODataApplicationException(e.getMessage(), HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ENGLISH);
-	    }
-	}
-
-	
-
-	
-	@Override
-	public void updatePrimitive(ODataRequest request, ODataResponse response, UriInfo uriInfo,	ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
-		
-	}
-
-	@Override
-	public void deletePrimitive(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
-
-	}
-	
-
-	private UriResourcePrimitiveProperty findRequestedProperty(List<UriResource> resourcePaths) {
-		for(UriResource currentPart : resourcePaths) {
-			if(currentPart.getKind() == UriResourceKind.primitiveProperty) {
-				return (UriResourcePrimitiveProperty)currentPart;
-			}
-		}
-		return null;
-	}
-
-	/***
-	 * Helper methods
-	 * 
-	 */
-	
-	private void sendEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, T object) throws SerializerException, ODataException {
-		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
-		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
-		  EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
-		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
-		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, options);
-		  response.setContent(serializedResponse.getContent());
-		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
-		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
-	}
+	/// Helper methods
 	
 	private EdmEntitySet getEdmEntitySet(UriInfoResource uriInfo) throws ODataApplicationException {
+
         List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
+         // To get the entity set we have to interpret all URI segments
         if (!(resourcePaths.get(0) instanceof UriResourceEntitySet)) {
             throw new ODataApplicationException("Invalid resource type for first segment.",
                       HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ENGLISH);
@@ -291,23 +217,8 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 		  response.setContent(serializedContent);
 		  sendError(response, contentType);
 	}
+	
 
 	
-	private void serializeProperty(Property property, EdmEntitySet edmEntitySet, EdmProperty edmProperty, ODataResponse response, ContentType responseFormat) throws SerializerException {
-		if(property.getValue() != null) {
-			ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
-	        ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).navOrPropertyPath(property.getName()).build();
-	        PrimitiveSerializerOptions options = PrimitiveSerializerOptions.with().contextURL(contextUrl).build();
-	        SerializerResult serializerResult = serializer.primitive(initServiceMetaData, (EdmPrimitiveType) edmProperty.getType(), property, options);
-	        InputStream propertyStream = serializerResult.getContent();
-	        response.setContent(propertyStream);
-	        response.setStatusCode(HttpStatusCode.OK.getStatusCode());
-	        response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
-		}
-		else {
-			 response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
-		}
-	}
 
-	
 }

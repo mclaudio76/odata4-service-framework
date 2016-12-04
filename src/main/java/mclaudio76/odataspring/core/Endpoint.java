@@ -13,28 +13,42 @@ import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
 
+import mclaudio76.odataspring.demo.ProductService;
 
-public class Endpoint<T> extends HttpServlet {
+
+public class Endpoint extends HttpServlet {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private String nameSpace = "";
-	private AbstractODataService<T> businessService = null;
-	private Class<T> clz = null;
+	private AbstractODataService businessService = null;
 	
+	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
 	
-	public Endpoint(String nameSpace, IODataService<T> actualBusinessEndPoint) {
+	public Endpoint(String nameSpace) {
 		super();
 		this.nameSpace 		 = nameSpace;
-		this.businessService = new AbstractODataService<>(actualBusinessEndPoint);
-		this.clz			 =  actualBusinessEndPoint.getEntityClass();
+		this.businessService = new AbstractODataService(new ProductService());
 	}
+	
+	public Endpoint addEntity(Class<?> clz) {
+		if(!publishedClasses.contains(clz)) {
+			System.out.println("Registered class >>"+clz.getName());
+			publishedClasses.add(clz);
+		}
+		return this;
+	}
+	
+	
 	
 	
 	public void process(HttpServletRequest req, HttpServletResponse response) {
 		try {
-			GenericEDMProvider provider = new GenericEDMProvider(nameSpace, "CONTAINER_"+nameSpace, clz);
+			GenericEDMProvider provider = new GenericEDMProvider(nameSpace, "CONTAINER_"+nameSpace);
+			for(Class<?> clz : publishedClasses) {
+				provider.addEntity(clz);
+			}
 			OData odata = OData.newInstance();
 	        ServiceMetadata edm = odata.createServiceMetadata(provider, new ArrayList<EdmxReference>());
 	        ODataHttpHandler handler = odata.createHandler(edm);
@@ -56,17 +70,6 @@ public class Endpoint<T> extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		process(request,response);
-	}
-	
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		process(request,response);
-	}
-	
-	protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		process(request,response);
 	}
 }
