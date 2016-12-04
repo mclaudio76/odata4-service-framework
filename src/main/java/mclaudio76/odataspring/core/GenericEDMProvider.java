@@ -9,6 +9,8 @@ import org.apache.olingo.commons.api.edm.provider.CsdlEntityContainer;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityContainerInfo;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntitySet;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityType;
+import org.apache.olingo.commons.api.edm.provider.CsdlNavigationProperty;
+import org.apache.olingo.commons.api.edm.provider.CsdlNavigationPropertyBinding;
 import org.apache.olingo.commons.api.edm.provider.CsdlSchema;
 import org.apache.olingo.commons.api.ex.ODataException;
 
@@ -121,6 +123,10 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 				      CsdlEntitySet entitySet = new CsdlEntitySet();
 				      entitySet.setName(entity.handledEntityName);
 				      entitySet.setType(entity.entityFQN);
+				      List<CsdlNavigationPropertyBinding> navigationPropertyBindings = annotationHelper.getNavigationPropertiesForEntitySet(entity.entityClass);
+					  if(navigationPropertyBindings != null && !navigationPropertyBindings.isEmpty()) {
+					   	entitySet.setNavigationPropertyBindings(navigationPropertyBindings);
+					  }     
 				      return entitySet;
 				}	
 			}
@@ -136,7 +142,10 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 				entityType.setName(entity.handledEntityName);
 			    entityType.setProperties(annotationHelper.getClassAttributes(entity.entityClass));
 			    entityType.setKey(annotationHelper.getClassKeys(entity.entityClass));
-			    
+			    List<CsdlNavigationProperty> relations = annotationHelper.getNavigationProperties(entity.entityClass, NAMESPACE);
+			    if(relations != null && !relations.isEmpty()) {
+			    	entityType.setNavigationProperties(relations);
+			    }
 			    return entityType;
 	  	   }
 		}

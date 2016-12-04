@@ -9,8 +9,10 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Target(FIELD)
 public @interface ODataNavigationProperty {
-	public String  name();
-	public boolean nullable();
-	public String  partner();
 	public Class   entityType();
+	public String  entityName();
+	public String  entitySetName();
+	public boolean nullable();
+	public String  partner() default "";
+	
 }

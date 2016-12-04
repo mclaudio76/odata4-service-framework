@@ -21,7 +21,7 @@ public class Product {
 	@ODataField(ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.String)
 	public String  description;
 	
-	@ODataNavigationProperty(name="Category",nullable=true,partner="Products", entityType=Category.class)
+	@ODataNavigationProperty(entityType=Category.class, entityName="Category",entitySetName="Categories", nullable=true, partner="")
 	public Category category = null;
 	
 	public Product() {

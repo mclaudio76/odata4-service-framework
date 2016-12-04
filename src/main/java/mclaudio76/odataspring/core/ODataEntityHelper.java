@@ -11,6 +11,7 @@ import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.edm.provider.CsdlNavigationProperty;
+import org.apache.olingo.commons.api.edm.provider.CsdlNavigationPropertyBinding;
 import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.ex.ODataException;
@@ -92,17 +93,46 @@ public class ODataEntityHelper {
 		}
 	}
 	
+	public List<CsdlNavigationPropertyBinding> getNavigationPropertiesForEntitySet(Class<?> entity) throws ODataException {
+		if(entity.isAnnotationPresent(ODataEntity.class)) {
+			ArrayList<CsdlNavigationPropertyBinding> properties = new ArrayList<>();
+			for(Field field : entity.getDeclaredFields()) {
+				if(field.isAnnotationPresent(ODataNavigationProperty.class)) {
+					ODataNavigationProperty annotation 		= (ODataNavigationProperty) field.getAnnotation(ODataNavigationProperty.class);
+					CsdlNavigationPropertyBinding currentProperty  = buildNavigationPropertyBinding(field, annotation);
+					   if(currentProperty != null) {
+						   properties.add(currentProperty);
+					   }
+				  }
+			}
+			return properties;
+		}
+		else {
+			throw new ODataException("Object isn't annotated with @ODataEntity ");
+		}
+	}
+	
 	
 	private CsdlNavigationProperty buildNavigationProperty(String nameSpace,Field field, ODataNavigationProperty annotation) {
 		CsdlNavigationProperty prop = new CsdlNavigationProperty();
 		// Load annotation about class category
-		prop.setName(annotation.name());
-		prop.setPartner(annotation.partner());
+		prop.setName(annotation.entityName());
+		if(!annotation.partner().trim().isEmpty()) {
+			prop.setPartner(annotation.partner());
+		}
 		prop.setNullable(annotation.nullable());
 		Class relatedObjectClass = annotation.entityType();
 		ODataEntity relatedEntityAnn = (ODataEntity) relatedObjectClass.getAnnotation(ODataEntity.class);
 		prop.setType(new FullQualifiedName(nameSpace, relatedEntityAnn.entityName()));
 		return prop;
+	}
+	
+	private CsdlNavigationPropertyBinding buildNavigationPropertyBinding(Field field, ODataNavigationProperty annotation) {
+		CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
+		// Load annotation about class category
+		navPropBinding.setPath(annotation.entityName()); // the path from entity type to navigation property
+		navPropBinding.setTarget(annotation.entitySetName()); //target entitySet, where the nav prop points to
+		return navPropBinding;
 	}
 
 	public List<CsdlPropertyRef> getClassKeys(Class<?> entity) throws ODataException {
