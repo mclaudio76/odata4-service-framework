@@ -9,7 +9,7 @@ import mclaudio76.odataspring.core.ODataParamValue;
 
 public class CategoryService implements IODataService<Category> {
 	
-	private ArrayList<Category> products = new ArrayList<>();
+	private ArrayList<Category> categories = new ArrayList<>();
 	private ODataEntityHelper helper	= new ODataEntityHelper();
 	
 	public CategoryService() {
@@ -18,27 +18,32 @@ public class CategoryService implements IODataService<Category> {
 	
 	@Override
 	public List<Category> listAll() {
-		return products;
+		return categories;
 	}
 
 	@Override
 	public Category findByKey(ODataParamValue ... keys) {
+		for(Category p : categories) {
+			if(helper.entityMatchesKeys(p, keys)) {
+				return p;
+			}
+		}
 		return null;
 	}
 
 	@Override
 	public Category create(ODataParamValue... values) {
-		Category product = new Category();
-		helper.setFieldsValueFromEntity(product, values);
-		products.add(product);
-		return product;
+		Category category = new Category();
+		helper.setFieldsValueFromEntity(category, values);
+		categories.add(category);
+		return category;
 	}
 
 	@Override
 	public void delete(ODataParamValue... keys) {
 		Category p = findByKey(keys);
 		if(p != null) {
-			products.remove(p);
+			categories.remove(p);
 		}
 	}
 
