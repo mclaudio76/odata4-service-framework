@@ -25,13 +25,14 @@ public class Product {
 	public Category category = null;
 	
 	public Product() {
-		this(0,"","");
+		this(0,"","", null);
 	}
 	
-	public Product(Integer id, String name, String description) {
+	public Product(Integer id, String name, String description, Category cat) {
 		this.ID = id;
 		this.name = name;
 		this.description  = description;
+		this.category     = cat;
 	}
 
 	@Override

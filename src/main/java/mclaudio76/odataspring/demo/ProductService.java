@@ -13,10 +13,10 @@ public class ProductService implements IODataService<Product> {
 	private ODataEntityHelper helper	= new ODataEntityHelper();
 	
 	public ProductService() {
-		products.add(new Product(1, "Alfa  A1", "Racing car"));
-		products.add(new Product(2, "Beta  B1", "Luxury car"));
-		products.add(new Product(3, "Gamma G3", "Speedy car"));
-		products.add(new Product(4, "Delta D4", "City car"));
+		products.add(new Product(1, "Alfa  A1", "Racing car", new Category(1, "Category ALFA")));
+		products.add(new Product(2, "Beta  B1", "Luxury car", new Category(1, "Category ALFA")));
+		products.add(new Product(3, "Gamma G3", "Speedy car", new Category(2, "Category BETA")));
+		products.add(new Product(4, "Delta D4", "City car",   new Category(2, "Category BETA")));
 	}
 	
 	@Override
