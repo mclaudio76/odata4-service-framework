@@ -22,14 +22,13 @@ public class Endpoint extends HttpServlet {
 	 */
 	private static final long serialVersionUID = 1L;
 	private String nameSpace = "";
-	private ODataServiceHandler businessService = null;
+	
 	
 	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
 	
 	public Endpoint(String nameSpace) {
 		super();
 		this.nameSpace 		 = nameSpace;
-		this.businessService = new ODataServiceHandler(new ProductService());
 	}
 	
 	public Endpoint addEntity(Class<?> clz) {
@@ -52,7 +51,7 @@ public class Endpoint extends HttpServlet {
 			OData odata = OData.newInstance();
 	        ServiceMetadata edm = odata.createServiceMetadata(provider, new ArrayList<EdmxReference>());
 	        ODataHttpHandler handler = odata.createHandler(edm);
-	        handler.register(businessService);
+	        handler.register(new ODataServiceHandler(provider));
 	        handler.process(req, response);
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);

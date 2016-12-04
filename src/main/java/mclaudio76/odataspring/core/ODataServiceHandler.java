@@ -44,14 +44,14 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
  * 
  */
 
-public class ODataServiceHandler<T> implements EntityCollectionProcessor, EntityProcessor {
+public class ODataServiceHandler implements EntityCollectionProcessor, EntityProcessor {
 	private OData 				initODataItem;
 	private ServiceMetadata 	initServiceMetaData;
 	private ODataEntityHelper 	oDataHelper;
-	private IODataService<T> 	businessService;
+	private GenericEDMProvider  edmProvider;
 	
-	public ODataServiceHandler(IODataService<T> businessService) {
-		this.businessService = businessService;
+	public ODataServiceHandler(GenericEDMProvider provider) {
+		this.edmProvider = provider;
 	}
 	
 	@Override
@@ -67,11 +67,11 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 		  try {
 			  List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
 			  UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0); 
-			  
 			  EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
+			  IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
 			  EntityCollection entitySet = new EntityCollection();
 			  try {
-				  for(T localEntity : businessService.listAll()) {
+				  for(Object localEntity : businessService.listAll()) {
 					  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
 				  }
 			  }
@@ -88,10 +88,13 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 
 	
 
+	
 	@Override
-	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws ODataApplicationException, DeserializerException, SerializerException {
+	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws  ODataApplicationException, DeserializerException, SerializerException {
 		EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
 		EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+		IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
+		
 		InputStream requestInputStream = request.getBody();
 		ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
 		DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
@@ -101,7 +104,7 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 		  attributes.add(new ODataParamValue(prop));
 		}
 		try {
-		  T newCreatedEntity   = businessService.create(attributes.toArray(new ODataParamValue[attributes.size()]));
+		  Object newCreatedEntity   = businessService.create(attributes.toArray(new ODataParamValue[attributes.size()]));
 		  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, newCreatedEntity);
 		}
 		catch(Exception e) {
@@ -109,24 +112,14 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 		}
 	}
 
-	private void sendEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, T object) throws SerializerException, ODataException {
-
-		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
-		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
-
-		  EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
-		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
-		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, options);
-
-		  response.setContent(serializedResponse.getContent());
-		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
-		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
-	}
-
+	
 	@Override
 	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
   	   ODataParamValue[] keys	    = getKeyPredicates(uriInfo);
-  	   businessService.delete(keys);
+  	   EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
+	   EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+	   IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
+	   businessService.delete(keys);
 	   response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
 	}
 
@@ -139,9 +132,10 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 	    // Note: only in our example we can assume that the first segment is the EntitySet
 	    UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0);
 	    EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
+	    IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
 	    ODataParamValue params[]  = getKeyPredicates(uriInfo);
 	    try {
-	    	T readEntity  = businessService.findByKey(params);   
+	    	Object readEntity  = businessService.findByKey(params);   
 		    EdmEntityType edmEntityType = edmEntitySet.getEntityType();
 		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity);
 	    }
@@ -156,6 +150,7 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 		 // 1. Retrieve the entity type from the URI
 		  EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
 		  EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+		  IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
 		  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
 		  InputStream requestInputStream = request.getBody();
 		  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
@@ -166,7 +161,7 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 			  attributes.add(new ODataParamValue(prop));
 		  }
 		  try {
-			  T target	= businessService.update(attributes.toArray(new ODataParamValue[attributes.size()]));
+			  Object target	= businessService.update(attributes.toArray(new ODataParamValue[attributes.size()]));
 			  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
 		  }
 		  catch(Exception e) {
@@ -176,6 +171,37 @@ public class ODataServiceHandler<T> implements EntityCollectionProcessor, Entity
 	}
 	
 	/// Helper methods
+	
+	private void sendEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, Object object) throws SerializerException, ODataException {
+
+		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
+		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
+
+		  EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
+		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
+		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, options);
+
+		  response.setContent(serializedResponse.getContent());
+		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
+		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+	}
+
+	
+	private IODataService createProperDataService(EdmEntityType entityType) throws ODataApplicationException {
+		try {
+			Class clz = edmProvider.findActualClass(entityType.getFullQualifiedName());
+			return oDataHelper.getController(clz);
+		}
+		catch(ODataException exp) {
+			raiseODataApplicationException(exp.getMessage(), HttpStatusCode.NOT_ACCEPTABLE);
+			return null;
+		}
+	}
+
+	private void raiseODataApplicationException(String message, HttpStatusCode statusCode) throws ODataApplicationException {
+		 throw new ODataApplicationException(message, statusCode.getStatusCode(),Locale.ENGLISH);
+	}
+
 	
 	private EdmEntitySet getEdmEntitySet(UriInfoResource uriInfo) throws ODataApplicationException {
 

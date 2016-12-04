@@ -167,4 +167,14 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 		System.out.println(this.getClass().getName()+" >> "+mex);
 	}
 
+
+	public Class findActualClass(FullQualifiedName fullQualifiedName) {
+		for(ExposedEntity entity : exposedEntities) {
+			if(entity.entityFQN.equals(fullQualifiedName)) {
+				return entity.entityClass;
+			}
+		}
+		return null;
+	}
+
 }
