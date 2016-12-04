@@ -22,14 +22,14 @@ public class Endpoint extends HttpServlet {
 	 */
 	private static final long serialVersionUID = 1L;
 	private String nameSpace = "";
-	private AbstractODataService businessService = null;
+	private ODataServiceHandler businessService = null;
 	
 	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
 	
 	public Endpoint(String nameSpace) {
 		super();
 		this.nameSpace 		 = nameSpace;
-		this.businessService = new AbstractODataService(new ProductService());
+		this.businessService = new ODataServiceHandler(new ProductService());
 	}
 	
 	public Endpoint addEntity(Class<?> clz) {

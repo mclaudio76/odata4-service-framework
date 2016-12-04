@@ -44,13 +44,13 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
  * 
  */
 
-public class AbstractODataService<T> implements EntityCollectionProcessor, EntityProcessor {
+public class ODataServiceHandler<T> implements EntityCollectionProcessor, EntityProcessor {
 	private OData 				initODataItem;
 	private ServiceMetadata 	initServiceMetaData;
 	private ODataEntityHelper 	oDataHelper;
 	private IODataService<T> 	businessService;
 	
-	public AbstractODataService(IODataService<T> businessService) {
+	public ODataServiceHandler(IODataService<T> businessService) {
 		this.businessService = businessService;
 	}
 	
