@@ -13,7 +13,7 @@ import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
 
-import mclaudio76.odataspring.demo.ProductService;
+
 
 
 public class Endpoint extends HttpServlet {

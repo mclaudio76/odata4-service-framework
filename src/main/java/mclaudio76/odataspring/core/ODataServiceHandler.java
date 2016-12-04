@@ -65,9 +65,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	@Override
 	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType contentType)	throws ODataApplicationException, ODataLibraryException {
 	  try {
-		  List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-		  UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0); 
-		  EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
+		  EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo);
 		  IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
 		  EntityCollection entitySet = new EntityCollection();
 		  try {
@@ -88,13 +86,13 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	@Override
 	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws  ODataApplicationException, DeserializerException, SerializerException {
-		EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
-		EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
-		IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
+		EdmEntitySet edmEntitySet      = getEdmEntitySet(uriInfo);
+		EdmEntityType edmEntityType    = edmEntitySet.getEntityType();
+		IODataService businessService  = createProperDataService(edmEntitySet.getEntityType());
 		InputStream requestInputStream = request.getBody();
 		ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
-		DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
-		Entity requestEntity 			 = result.getEntity();
+		DeserializerResult result 	   = deserializer.entity(requestInputStream, edmEntityType);
+		Entity requestEntity 		   = result.getEntity();
 		List<ODataParamValue> attributes = new ArrayList<>();
 		for(Property prop : requestEntity.getProperties()) {
 		  attributes.add(new ODataParamValue(prop));
@@ -111,9 +109,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	@Override
 	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
-  	   ODataParamValue[] keys	    = getKeyPredicates(uriInfo);
-  	   EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
-	   EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+  	   ODataParamValue[] keys	     = getKeyPredicates(uriInfo);
+  	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
 	   IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
 	   businessService.delete(keys);
 	   response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
@@ -123,11 +120,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	@Override
 	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
-		// 1. retrieve the Entity Type
-	    List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-	    // Note: only in our example we can assume that the first segment is the EntitySet
-	    UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0);
-	    EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
+	    EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo);
 	    IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
 	    ODataParamValue params[]  = getKeyPredicates(uriInfo);
 	    try {
@@ -200,18 +193,16 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	
 	private EdmEntitySet getEdmEntitySet(UriInfoResource uriInfo) throws ODataApplicationException {
-
         List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-         // To get the entity set we have to interpret all URI segments
         if (!(resourcePaths.get(0) instanceof UriResourceEntitySet)) {
             throw new ODataApplicationException("Invalid resource type for first segment.",
                       HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ENGLISH);
         }
-
         UriResourceEntitySet uriResource = (UriResourceEntitySet) resourcePaths.get(0);
-
         return uriResource.getEntitySet();
     }
+
+	
 	
 	private ODataParamValue[] getKeyPredicates(UriInfo uriInfo) {
 		UriResourceEntitySet uriResourceEntitySet 	= (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
@@ -229,6 +220,12 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		response.setHeader(HttpHeader.CONTENT_TYPE, contentType.toContentTypeString());
 	}
 
+	private void sendData(ODataResponse response, ContentType contentType) {
+		response.setStatusCode(HttpStatusCode.OK.getStatusCode());
+		response.setHeader(HttpHeader.CONTENT_TYPE, contentType.toContentTypeString());
+	}
+
+	
 	private void serializeCollection(ODataRequest request, ODataResponse response, ContentType contentType, EdmEntitySet edmEntitySet, EntityCollection entitySet) throws SerializerException {
 		  ODataSerializer serializer = initODataItem.createSerializer(contentType);
 		  EdmEntityType edmEntityType = edmEntitySet.getEntityType();
@@ -238,7 +235,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		  SerializerResult serializerResult = serializer.entityCollection(initServiceMetaData, edmEntityType, entitySet, opts);
 		  InputStream serializedContent = serializerResult.getContent();
 		  response.setContent(serializedContent);
-		  sendError(response, contentType);
+		  sendData(response, contentType);
 	}
 	
 
