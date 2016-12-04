@@ -11,5 +11,5 @@ import java.lang.annotation.Target;
 public @interface ODataEntity {
 	public String entityName();
 	public String entitySetName();
-	public Class<? extends IODataService> controller();
+	public Class<? extends IODataService<?>> controller();
 }

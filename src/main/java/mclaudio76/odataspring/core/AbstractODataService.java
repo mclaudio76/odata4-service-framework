@@ -67,6 +67,7 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 		  try {
 			  List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
 			  UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0); 
+			  
 			  EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
 			  EntityCollection entitySet = new EntityCollection();
 			  try {
@@ -109,14 +110,14 @@ public class AbstractODataService<T> implements EntityCollectionProcessor, Entit
 	}
 
 	private void sendEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, T object) throws SerializerException, ODataException {
-		   // 3. serialize the response (we have to return the created entity)
+
 		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
 		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
-		  //expand and select currently not supported
+
 		  EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
 		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
 		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, options);
-		  //4. configure the response object
+
 		  response.setContent(serializedResponse.getContent());
 		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
 		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
