@@ -1,0 +1,16 @@
+package mclaudio76.odataspring.core;
+
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+@Retention(RUNTIME)
+@Target(FIELD)
+public @interface ODataNavigationProperty {
+	public String  name();
+	public boolean nullable();
+	public String  partner();
+	public Class   entityType();
+}

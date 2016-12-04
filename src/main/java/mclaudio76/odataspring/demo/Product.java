@@ -5,6 +5,7 @@ import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 
 import mclaudio76.odataspring.core.ODataEntity;
 import mclaudio76.odataspring.core.ODataField;
+import mclaudio76.odataspring.core.ODataNavigationProperty;
 
 	
 
@@ -20,7 +21,9 @@ public class Product {
 	@ODataField(ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.String)
 	public String  description;
 	
-
+	@ODataNavigationProperty(name="Category",nullable=true,partner="Products", entityType=Category.class)
+	public Category category = null;
+	
 	public Product() {
 		this(0,"","");
 	}

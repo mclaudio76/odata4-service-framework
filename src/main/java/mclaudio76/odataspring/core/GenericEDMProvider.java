@@ -136,6 +136,7 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 				entityType.setName(entity.handledEntityName);
 			    entityType.setProperties(annotationHelper.getClassAttributes(entity.entityClass));
 			    entityType.setKey(annotationHelper.getClassKeys(entity.entityClass));
+			    
 			    return entityType;
 	  	   }
 		}
