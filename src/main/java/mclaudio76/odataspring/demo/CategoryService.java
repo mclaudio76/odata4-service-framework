@@ -15,7 +15,6 @@ public class CategoryService implements IODataService<Category> {
 	public CategoryService() {
 		categories.add(new Category(1, "Expensive cars"));
 		categories.add(new Category(2, "Cheap cars"));
-		
 	}
 	
 	@Override

@@ -64,37 +64,33 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	@Override
 	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType contentType)	throws ODataApplicationException, ODataLibraryException {
+	  try {
+		  List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
+		  UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0); 
+		  EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
+		  IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
+		  EntityCollection entitySet = new EntityCollection();
 		  try {
-			  List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-			  UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0); 
-			  EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
-			  IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
-			  EntityCollection entitySet = new EntityCollection();
-			  try {
-				  for(Object localEntity : businessService.listAll()) {
-					  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
-				  }
+			  for(Object localEntity : businessService.listAll()) {
+				  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
 			  }
-			  catch(Exception e) {
-				  e.printStackTrace(System.err);
-			  }
-			  serializeCollection(request, response, contentType, edmEntitySet, entitySet);
 		  }
 		  catch(Exception e) {
-			  sendError(response, contentType);
+			  e.printStackTrace(System.err);
 		  }
-		
+		  serializeCollection(request, response, contentType, edmEntitySet, entitySet);
+	  }
+	  catch(Exception e) {
+		  sendError(response, contentType);
+	  }
 	}
-
-	
 
 	
 	@Override
 	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws  ODataApplicationException, DeserializerException, SerializerException {
-		EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
-		EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+		EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
+		EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
 		IODataService businessService = createProperDataService(edmEntitySet.getEntityType());
-		
 		InputStream requestInputStream = request.getBody();
 		ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
 		DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);

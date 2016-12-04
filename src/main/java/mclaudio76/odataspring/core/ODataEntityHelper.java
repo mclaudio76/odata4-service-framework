@@ -35,7 +35,7 @@ public class ODataEntityHelper {
 		}
 	}
 	
-	public IODataService getController(Class<?> clz) throws ODataException {
+	public IODataService<?> getController(Class<?> clz) throws ODataException {
 		try {
 			if(clz.isAnnotationPresent(ODataEntity.class)) {
 				ODataEntity metaData = (ODataEntity) clz.getAnnotation(ODataEntity.class);
