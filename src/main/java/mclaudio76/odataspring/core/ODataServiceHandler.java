@@ -1,5 +1,7 @@
 package mclaudio76.odataspring.core;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
+
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -12,6 +14,7 @@ import org.apache.olingo.commons.api.data.ContextURL;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
+import org.apache.olingo.commons.api.edm.EdmBindingTarget;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.ex.ODataException;
@@ -39,9 +42,13 @@ import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
+import org.apache.olingo.server.api.uri.UriResourceKind;
+import org.apache.olingo.server.api.uri.UriResourceNavigation;
+import org.glassfish.hk2.runlevel.CurrentlyRunningException;
 
 import mclaudio76.odataspring.core.annotations.ODataCreateEntity;
 import mclaudio76.odataspring.core.annotations.ODataDeleteEntity;
+import mclaudio76.odataspring.core.annotations.ODataNavigateFromEntityToEntity;
 import mclaudio76.odataspring.core.annotations.ODataReadEntity;
 import mclaudio76.odataspring.core.annotations.ODataReadEntityCollection;
 import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
@@ -72,24 +79,27 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	@Override
 	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
-	    EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
-	    Object businessService      = instatiateDataService(edmEntitySet.getEntityType());
-	    List<ODataParamValue> keys	= getKeyPredicates(uriInfo);
-	    Class  workEntityClass      = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-	    try {
+		try {
+			processReadRequest(request, response, uriInfo, responseFormat);
+			/*EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
+		    Object businessService      = instatiateDataService(edmEntitySet.getEntityType());
+		    List<ODataParamValue> keys	= getKeyPredicates(uriInfo);
+		    Class  workEntityClass      = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 	    	Object readEntity  =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);//businessService.findByKey(params);   
 		    EdmEntityType edmEntityType = edmEntitySet.getEntityType();
-		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity);
+		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity); */
 	    }
 	    catch(Exception e) {
 	    	sendError(response, responseFormat);
-	    }
+	    } 
 	}
 	
 	@Override
-	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType contentType)	throws ODataApplicationException, ODataLibraryException {
+	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
 	  try {
-		  EdmEntitySet edmEntitySet  = getEdmEntitySet(uriInfo);
+		  processReadRequest(request, response, uriInfo, responseFormat);
+		  
+		 /* EdmEntitySet edmEntitySet  = getEdmEntitySet(uriInfo);
 		  Object businessService 	 = instatiateDataService(edmEntitySet.getEntityType());
 		  Class  workEntityClass     = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 		  EntityCollection entitySet = new EntityCollection();
@@ -103,13 +113,98 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		  catch(Exception e) {
 			  e.printStackTrace(System.err);
 		  }
-		  serializeCollection(request, response, contentType, edmEntitySet, entitySet);
+		  serializeCollection(request, response, contentType, edmEntitySet, entitySet); */
+		  
 	  }
 	  catch(Exception e) {
-		  sendError(response, contentType);
+		  sendError(response, responseFormat);
 	  }
 	}
 
+	
+	/****
+	 * Processes a generic read request.
+	 * 
+	 */
+	
+	private void processReadRequest(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataException {
+		 List<UriResource> resourcePaths 	 = uriInfo.getUriResourceParts();
+		 
+		 Object currentWorkingEntity		 	 = null;
+		 EdmEntityType	currentEdmEntityType	 = null;
+		 EdmEntitySet   currentEdmEntitySet		 = null;
+		 Collection currentReadCollection	 	 = null;
+		 
+		 int lastIndex						 = resourcePaths.size()-1;
+		 for(int uriIndex = 0; uriIndex < resourcePaths.size(); uriIndex++) {
+			UriResource currentResourcePart = resourcePaths.get(uriIndex);
+			// If the resourcePart is an UriResourceEntitySet, we are working on a EntitySet or an Entity directly,
+			// i.e we are not navigating across entities (Products(1)->Category->Products()
+			if(currentResourcePart instanceof UriResourceEntitySet) {
+			   UriResourceEntitySet uriEntitySet = (UriResourceEntitySet) currentResourcePart;
+			   EdmEntitySet edmEntitySet   		 = uriEntitySet.getEntitySet();
+			   EdmEntityType edmEntityType 		 = edmEntitySet.getEntityType();
+			   Object businessService      		 = instatiateDataService(edmEntityType);
+			   Class  workEntityClass      		 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
+			   List<ODataParamValue> keys  		 = getKeyPredicates(uriInfo);
+			   // Is it a collection ?
+			   if(uriEntitySet.isCollection()) {
+				  EntityCollection entitySet = new EntityCollection();
+				  try {
+					  currentReadCollection  = (Collection<Object>) invokeMethod(businessService,workEntityClass, ODataReadEntityCollection.class, keys);
+					  currentEdmEntitySet    = edmEntitySet;
+					  currentEdmEntityType   = edmEntityType;
+					  // If we reached the last segment, we send to the client the read collection serialized.
+					  if(uriIndex == lastIndex) {
+						  for(Object localEntity : currentReadCollection) {
+							  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
+						  }
+						  serializeCollection(request, response, responseFormat, edmEntitySet, entitySet);
+						  return;
+					  }
+				  }
+				  catch(Exception e) {
+					 throw new ODataException(e.getMessage());
+				  }
+			   }
+			   // ... or a single entity ?
+			   else {
+				  currentEdmEntitySet    = edmEntitySet;
+				  currentEdmEntityType   = edmEntityType; 
+			   	  currentWorkingEntity =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);
+   			      // If we reached the last segment, we send to the client the serialized entity.
+				  if(uriIndex == lastIndex) {
+					  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity);
+				  }
+			   }
+			}
+			if(currentResourcePart instanceof UriResourceNavigation) {
+				UriResourceNavigation uriEntityNavigation = (UriResourceNavigation) currentResourcePart;
+				EdmEntityType edmEntityType 		 = uriEntityNavigation.getProperty().getType();
+				Object businessService      		 = instatiateDataService(edmEntityType);
+				List<ODataParamValue> params  		 = new ArrayList<ODataParamValue>(); 
+				if(uriEntityNavigation.isCollection()) {
+					
+				}
+				else { // We are navigating from an Entity to a RelatedEntity.
+					String name							 =  uriEntityNavigation.getProperty().getName();
+					EdmBindingTarget edmBindingTarget    =  currentEdmEntitySet.getRelatedBindingTarget(uriEntityNavigation.getProperty().getName()); 
+					Class  targetEntityClass      		 =  edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
+					String relatedEntitySetName			 =  oDataHelper.getEntitySetName(targetEntityClass);
+					EdmEntitySet	 edmEntitySet		 =  edmBindingTarget.getEntityContainer().getEntitySet(relatedEntitySetName);
+					currentWorkingEntity 				 =  invokeNavigationMethod(businessService, currentWorkingEntity.getClass(), targetEntityClass, ODataNavigateFromEntityToEntity.class, currentWorkingEntity, params);
+					 if(uriIndex == lastIndex) {
+					    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity);
+					 }
+				}
+			}
+			
+ 		 }
+		 
+	}
+	
+	
+	
 	
 	
 
@@ -154,12 +249,6 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	
 
-	
-	
-	private void processRequest(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) {
-		 List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-		 
-	}
 	
 
 	@Override
@@ -349,6 +438,39 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		}
 		try {
 			return targetMethod.invoke(businessService, (Object) params);
+		}
+		catch(Exception e) {
+			throw new ODataException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName());
+		}
+	}
+	
+	
+	private Object invokeNavigationMethod(Object businessService, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, List<ODataParamValue> params) throws ODataException {
+		Method targetMethod = null;
+		for(Method method : businessService.getClass().getDeclaredMethods()) {
+			Class[] mParams  = method.getParameterTypes();
+			// Target method must be annotated with required annotation
+			boolean annotationPresent = method.isAnnotationPresent(annotation);
+			if(annotationPresent) {
+				boolean matches  		  = annotationPresent; 
+				Class<?>   returnType	  = method.getReturnType();
+				// Reading collections of entities
+				if(annotation.equals(ODataNavigateFromEntityToEntity.class)) {
+					ODataNavigateFromEntityToEntity actualAnnotation = (ODataNavigateFromEntityToEntity) method.getAnnotation(annotation); 
+					matches			&= actualAnnotation.fromEntity().equals(sourceEntityClass);
+					matches			&= actualAnnotation.toEntity().equals(destinationEntityClass);
+					if(matches) {
+						targetMethod = method;
+						break;
+					}
+				}
+			}
+		}
+		if(targetMethod == null) {
+			throw new ODataException("No suitable method found for navigation.");
+		}
+		try {
+			return targetMethod.invoke(businessService, masterEntity, (Object) params);
 		}
 		catch(Exception e) {
 			throw new ODataException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName());

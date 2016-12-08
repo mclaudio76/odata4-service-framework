@@ -9,6 +9,7 @@ import mclaudio76.odataspring.core.ODataParamValue;
 import mclaudio76.odataspring.core.annotations.ODataController;
 import mclaudio76.odataspring.core.annotations.ODataCreateEntity;
 import mclaudio76.odataspring.core.annotations.ODataDeleteEntity;
+import mclaudio76.odataspring.core.annotations.ODataNavigateFromEntityToEntity;
 import mclaudio76.odataspring.core.annotations.ODataReadEntity;
 import mclaudio76.odataspring.core.annotations.ODataReadEntityCollection;
 import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
@@ -27,7 +28,7 @@ public class ProductStoreService  {
 			if(!inited) {
 				inited = true;
 				Category c1 = new Category(1, "Expensive cars");
-				Category c2 = new Category(1, "Great cars");
+				Category c2 = new Category(2, "Great cars");
 				
 				products.add(new Product(1, "Alfa  A1", "Racing car", c1));
 				products.add(new Product(2, "Beta  B1", "Luxury car", c2));
@@ -79,6 +80,13 @@ public class ProductStoreService  {
 		return null;
 	}
 
+	// Navigation, from product to categories
+	
+	@ODataNavigateFromEntityToEntity(fromEntity=Product.class, toEntity=Category.class)
+	public Category getAssociatedCategory(Product item, List<ODataParamValue> values) {
+		return item.category;
+	}
+	
 	
 	/****
 	 * Categories
@@ -119,6 +127,8 @@ public class ProductStoreService  {
 	public Category updateCategory(List<ODataParamValue> values) {
 		return null;
 	}
+	
+	
 	
 	
 
