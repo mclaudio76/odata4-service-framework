@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.core;
+package mclaudio76.odataspring.core.annotations;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;

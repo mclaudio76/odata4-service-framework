@@ -3,9 +3,9 @@ package mclaudio76.odataspring.demo;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 
-import mclaudio76.odataspring.core.ODataEntity;
-import mclaudio76.odataspring.core.ODataField;
-import mclaudio76.odataspring.core.ODataNavigationProperty;
+import mclaudio76.odataspring.core.annotations.ODataEntity;
+import mclaudio76.odataspring.core.annotations.ODataField;
+import mclaudio76.odataspring.core.annotations.ODataNavigationProperty;
 
 	
 
