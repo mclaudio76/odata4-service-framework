@@ -1,10 +1,13 @@
 package mclaudio76.odataspring.demo;
 
+import java.util.List;
+
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 
 import mclaudio76.odataspring.core.annotations.ODataEntity;
 import mclaudio76.odataspring.core.annotations.ODataField;
+import mclaudio76.odataspring.core.annotations.ODataNavigationProperty;
 
 @ODataEntity(entityName="Category",entitySetName="Categories", controller=ProductStoreService.class)
 public class Category {
@@ -15,6 +18,8 @@ public class Category {
 	@ODataField(ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.String)
 	public String  categoryDescription;
 	
+	@ODataNavigationProperty(entityType=Product.class, name="Products", path="Products", target="Products", nullable=false, partner="Category")
+	public List<Product> products;
 
 	public Category() {
 		this(0,"");

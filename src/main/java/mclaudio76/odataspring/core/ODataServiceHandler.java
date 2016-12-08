@@ -70,6 +70,21 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		this.oDataHelper = new ODataEntityHelper();
 	}
 	
+	@Override
+	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
+	    EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
+	    Object businessService      = instatiateDataService(edmEntitySet.getEntityType());
+	    List<ODataParamValue> keys	= getKeyPredicates(uriInfo);
+	    Class  workEntityClass      = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
+	    try {
+	    	Object readEntity  =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);//businessService.findByKey(params);   
+		    EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity);
+	    }
+	    catch(Exception e) {
+	    	sendError(response, responseFormat);
+	    }
+	}
 	
 	@Override
 	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType contentType)	throws ODataApplicationException, ODataLibraryException {
@@ -135,28 +150,17 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	   catch(Exception e) {
 		  sendError(response, ContentType.APPLICATION_JSON);
 		}
-	   
-	   
 	}
 
 	
 
-	@Override
-	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
-	    EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo);
-	    Object businessService    = instatiateDataService(edmEntitySet.getEntityType());
-	    List<ODataParamValue> keys	     = getKeyPredicates(uriInfo);
-	    Class  workEntityClass    = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-	    try {
-	    	Object readEntity  =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);//businessService.findByKey(params);   
-		    EdmEntityType edmEntityType = edmEntitySet.getEntityType();
-		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity);
-	    }
-	    catch(Exception e) {
-	    	sendError(response, responseFormat);
-	    }
-		
+	
+	
+	private void processRequest(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) {
+		 List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
+		 
 	}
+	
 
 	@Override
 	public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
@@ -233,6 +237,10 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	private List<ODataParamValue> getKeyPredicates(UriInfo uriInfo) {
 		UriResourceEntitySet uriResourceEntitySet 	= (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
+		return getKeyPredicates(uriResourceEntitySet);
+	}
+	
+	private List<ODataParamValue> getKeyPredicates(UriResourceEntitySet uriResourceEntitySet) {
 	    List<UriParameter> keyPredicates 			= uriResourceEntitySet.getKeyPredicates();
 	    List<ODataParamValue> keys = new ArrayList<>();
 	    for(UriParameter uri : keyPredicates)  {
@@ -240,6 +248,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	    }
 	    return keys;
 	}
+	
+	
 	
 	
 	private void sendError(ODataResponse response, ContentType contentType) {

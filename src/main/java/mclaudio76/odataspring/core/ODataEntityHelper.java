@@ -125,11 +125,16 @@ public class ODataEntityHelper {
 	private CsdlNavigationProperty buildNavigationProperty(String nameSpace,Field field, ODataNavigationProperty annotation) {
 		CsdlNavigationProperty prop = new CsdlNavigationProperty();
 		// Load annotation about class category
-		prop.setName(annotation.entityName());
+		prop.setName(annotation.name());
 		if(!annotation.partner().trim().isEmpty()) {
 			prop.setPartner(annotation.partner());
 		}
 		prop.setNullable(annotation.nullable());
+		// If field represents a collection..
+		if(List.class.isAssignableFrom(field.getType())) {
+			prop.setCollection(true);
+		}
+		
 		Class relatedObjectClass = annotation.entityType();
 		ODataEntity relatedEntityAnn = (ODataEntity) relatedObjectClass.getAnnotation(ODataEntity.class);
 		prop.setType(new FullQualifiedName(nameSpace, relatedEntityAnn.entityName()));
@@ -138,9 +143,8 @@ public class ODataEntityHelper {
 	
 	private CsdlNavigationPropertyBinding buildNavigationPropertyBinding(Field field, ODataNavigationProperty annotation) {
 		CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
-		// Load annotation about class category
-		navPropBinding.setPath(annotation.entityName()); // the path from entity type to navigation property
-		navPropBinding.setTarget(annotation.entitySetName()); //target entitySet, where the nav prop points to
+		navPropBinding.setPath(annotation.name()); // the path from entity type to navigation property
+		navPropBinding.setTarget(annotation.target()); //target entitySet, where the nav prop points to
 		return navPropBinding;
 	}
 

@@ -10,8 +10,9 @@ import java.lang.annotation.Target;
 @Target(FIELD)
 public @interface ODataNavigationProperty {
 	public Class   entityType();
-	public String  entityName();
-	public String  entitySetName();
+	public String  name();
+	public String  path();
+	public String  target();
 	public boolean nullable();
 	public String  partner() default "";
 	

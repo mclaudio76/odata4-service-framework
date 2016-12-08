@@ -26,13 +26,16 @@ public class ProductStoreService  {
 		synchronized (inited) {
 			if(!inited) {
 				inited = true;
-				products.add(new Product(1, "Alfa  A1", "Racing car", new Category(1, "Category ALFA")));
-				products.add(new Product(2, "Beta  B1", "Luxury car", new Category(1, "Category ALFA")));
-				products.add(new Product(3, "Gamma G3", "Speedy car", new Category(2, "Category BETA")));
-				products.add(new Product(4, "Delta D4", "City car",   new Category(2, "Category BETA")));
+				Category c1 = new Category(1, "Expensive cars");
+				Category c2 = new Category(1, "Great cars");
 				
-				categories.add(new Category(1, "Expensive cars"));
-				categories.add(new Category(2, "Cheap cars"));
+				products.add(new Product(1, "Alfa  A1", "Racing car", c1));
+				products.add(new Product(2, "Beta  B1", "Luxury car", c2));
+				products.add(new Product(3, "Gamma G3", "Speedy car", c2));
+				products.add(new Product(4, "Delta D4", "City car",   c1));
+				
+				categories.add(c1);
+				categories.add(c2);
 			}	
 		}
 	} 
