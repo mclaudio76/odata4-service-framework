@@ -278,7 +278,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				boolean matches  		  = annotationPresent; 
 				// Reading collections of entities
 				if(annotation.equals(ODataReadEntityCollection.class)) {
-					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+					ODataReadEntityCollection actualAnnotation = (ODataReadEntityCollection) method.getAnnotation(annotation); 
+					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= method.getReturnType().isInstance(Collection.class); // Must return a Collection
@@ -288,8 +289,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					}
 				}
 				else // Read of an entity
-				if(annotation.equals(ODataCreateEntity.class)) {
-					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+				if(annotation.equals(ODataReadEntity.class)) {
+					ODataReadEntity actualAnnotation = (ODataReadEntity) method.getAnnotation(annotation);
+					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
@@ -300,7 +302,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				}
 				else // Creation of an Entity
 				if(annotation.equals(ODataCreateEntity.class)) {
-					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+					ODataCreateEntity actualAnnotation = (ODataCreateEntity) method.getAnnotation(annotation);
+					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
@@ -310,8 +313,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					}
 				}
 				else // Deletion of an Entity
-				if(annotation.equals(ODataCreateEntity.class)) {
-					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+				if(annotation.equals(ODataDeleteEntity.class)) {
+					ODataDeleteEntity actualAnnotation = (ODataDeleteEntity) method.getAnnotation(annotation);
+					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class); // must return nothing
@@ -321,8 +325,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					}
 				}
 				else // Update of an entity
-				if(annotation.equals(ODataCreateEntity.class)) {
-					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+				if(annotation.equals(ODataUpdateEntity.class)) {
+					ODataUpdateEntity actualAnnotation = (ODataUpdateEntity) method.getAnnotation(annotation);
+					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
