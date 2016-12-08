@@ -6,7 +6,7 @@ import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 import mclaudio76.odataspring.core.annotations.ODataEntity;
 import mclaudio76.odataspring.core.annotations.ODataField;
 
-@ODataEntity(entityName="Category",entitySetName="Categories", controller=CategoryService.class)
+@ODataEntity(entityName="Category",entitySetName="Categories", controller=ProductStoreService.class)
 public class Category {
 	
 	@ODataField(isKey=true, ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.Int32)

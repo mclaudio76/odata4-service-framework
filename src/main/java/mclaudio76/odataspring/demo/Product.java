@@ -9,7 +9,7 @@ import mclaudio76.odataspring.core.annotations.ODataNavigationProperty;
 
 	
 
-@ODataEntity(entityName="Product",entitySetName="Products", controller=ProductService.class)
+@ODataEntity(entityName="Product",entitySetName="Products", controller=ProductStoreService.class)
 public class Product {
 	
 	@ODataField(isKey=true, ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.Int32)

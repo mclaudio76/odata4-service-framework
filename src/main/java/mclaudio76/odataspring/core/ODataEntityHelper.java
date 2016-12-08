@@ -238,7 +238,7 @@ public class ODataEntityHelper {
 	
 	
 	
-	public void setFieldsValueFromEntity(Object object, ODataParamValue ... attributes) {
+	public void setFieldsValueFromEntity(Object object, List<ODataParamValue> attributes) {
 		for(ODataParamValue paramValue : attributes) {
 			try {
 				object.getClass().getDeclaredField(paramValue.propertyName).set(object, paramValue.value);
@@ -249,7 +249,7 @@ public class ODataEntityHelper {
 		}
 	}
 	
-	public boolean entityMatchesKeys(Object object, ODataParamValue ... attributes) {
+	public boolean entityMatchesKeys(Object object, List<ODataParamValue>  attributes) {
 		boolean matches = true;
 		for(ODataParamValue paramValue : attributes) {
 			try {

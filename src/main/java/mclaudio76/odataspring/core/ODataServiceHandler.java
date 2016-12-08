@@ -80,7 +80,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		  EntityCollection entitySet = new EntityCollection();
 		  try {
 			  // Search for a method annotated with @ODataReadEntityCollections
-			  Collection<Object> entityList = (Collection<Object>) invokeMethod(businessService,workEntityClass, ODataReadEntityCollection.class, null);
+			  Collection<Object> entityList = (Collection<Object>) invokeMethod(businessService,workEntityClass, ODataReadEntityCollection.class, new ArrayList<ODataParamValue>());
 			  for(Object localEntity : entityList) {
 				  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
 			  }
@@ -113,7 +113,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		  attributes.add(new ODataParamValue(prop));
 		}
 		try {
-		  Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes.toArray(new ODataParamValue[attributes.size()]));
+		  Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes);
 		  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, newCreatedEntity);
 		}
 		catch(Exception e) {
@@ -124,7 +124,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	@Override
 	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
-  	   ODataParamValue[] keys	     = getKeyPredicates(uriInfo);
+  	   List<ODataParamValue> keys	     = getKeyPredicates(uriInfo);
   	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
 	   Object businessService 		 = instatiateDataService(edmEntitySet.getEntityType());
 	   Class  workEntityClass     	 = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
@@ -145,10 +145,10 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
 	    EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo);
 	    Object businessService    = instatiateDataService(edmEntitySet.getEntityType());
-	    ODataParamValue params[]  = getKeyPredicates(uriInfo);
+	    List<ODataParamValue> keys	     = getKeyPredicates(uriInfo);
 	    Class  workEntityClass    = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 	    try {
-	    	Object readEntity  =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,params);//businessService.findByKey(params);   
+	    	Object readEntity  =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);//businessService.findByKey(params);   
 		    EdmEntityType edmEntityType = edmEntitySet.getEntityType();
 		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity);
 	    }
@@ -175,7 +175,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			  attributes.add(new ODataParamValue(prop));
 		  }
 		  try {
-			  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes.toArray(new ODataParamValue[attributes.size()]));//businessService.findByKey(params);   //businessService.update(attributes.toArray(new ODataParamValue[attributes.size()]));
+			  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
 			  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
 		  }
 		  catch(Exception e) {
@@ -231,14 +231,14 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	
 	
-	private ODataParamValue[] getKeyPredicates(UriInfo uriInfo) {
+	private List<ODataParamValue> getKeyPredicates(UriInfo uriInfo) {
 		UriResourceEntitySet uriResourceEntitySet 	= (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
 	    List<UriParameter> keyPredicates 			= uriResourceEntitySet.getKeyPredicates();
 	    List<ODataParamValue> keys = new ArrayList<>();
 	    for(UriParameter uri : keyPredicates)  {
 	    	keys.add(new ODataParamValue(uri));
 	    }
-	    return keys.toArray(new ODataParamValue[keys.size()]);
+	    return keys;
 	}
 	
 	
@@ -268,7 +268,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	/// Reflection support for invoking methods.
 	/// Verifies if, given a certain annotation, a method with such annotation exists and accepts expected parameters
-	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, ODataParamValue[] params) throws ODataException {
+	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, List<ODataParamValue> params) throws ODataException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
@@ -276,13 +276,14 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			boolean annotationPresent = method.isAnnotationPresent(annotation);
 			if(annotationPresent) {
 				boolean matches  		  = annotationPresent; 
+				Class<?>   returnType	  = method.getReturnType();
 				// Reading collections of entities
 				if(annotation.equals(ODataReadEntityCollection.class)) {
 					ODataReadEntityCollection actualAnnotation = (ODataReadEntityCollection) method.getAnnotation(annotation); 
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-					matches			&= method.getReturnType().isInstance(Collection.class); // Must return a Collection
+					matches			&= Collection.class.isAssignableFrom(returnType); // Must return a Collection
 					if(matches) {
 						targetMethod = method;
 						break;
@@ -294,7 +295,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
+					matches			&= returnType.isInstance(workEntityClass); // Must return an object
 					if(matches) {
 						targetMethod = method;
 						break;
@@ -306,7 +307,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
+					matches			&= returnType.isInstance(workEntityClass); // Must return an object
 					if(matches) {
 						targetMethod = method;
 						break;
@@ -330,7 +331,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1; // Only one parameter
 					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
+					matches			&= returnType.isInstance(workEntityClass); // Must return an object
 					if(matches) {
 						targetMethod = method;
 						break;
@@ -342,7 +343,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			throw new ODataException("No suitable method found ");
 		}
 		try {
-			return targetMethod.invoke(businessService, (Object[])params);
+			return targetMethod.invoke(businessService, (Object) params);
 		}
 		catch(Exception e) {
 			throw new ODataException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName());
