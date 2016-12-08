@@ -16,6 +16,7 @@ import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.ex.ODataException;
 
+import mclaudio76.odataspring.core.annotations.ODataController;
 import mclaudio76.odataspring.core.annotations.ODataEntity;
 import mclaudio76.odataspring.core.annotations.ODataField;
 import mclaudio76.odataspring.core.annotations.ODataNavigationProperty;
@@ -42,17 +43,21 @@ public class ODataEntityHelper {
 		}
 	}
 	
-	public IODataService<?> getController(Class<?> clz) throws ODataException {
+	public Object getController(Class<?> clz) throws ODataException {
 		try {
 			if(clz.isAnnotationPresent(ODataEntity.class)) {
-				ODataEntity metaData = (ODataEntity) clz.getAnnotation(ODataEntity.class);
+				ODataEntity metaData  = (ODataEntity) clz.getAnnotation(ODataEntity.class);
+				Class controllerClass = metaData.controller();
+				if(!controllerClass.isAnnotationPresent(ODataController.class)) {
+					throw new ODataException(" Class "+controllerClass.getCanonicalName()+" isn't annotated with @ODataController ");
+				}
 				return  metaData.controller().newInstance();
 			}
 			else {
 				throw new ODataException("Object isn't annotated with @ODataEntity ");
 			}
 		}
-		catch(InstantiationException | IllegalAccessException ie) {
+		catch(InstantiationException | IllegalAccessException  | ODataException oe) {
 			throw new ODataException("Unable to instantiate a controller.");
 		}
 	}

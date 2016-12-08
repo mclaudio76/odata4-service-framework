@@ -3,13 +3,18 @@ package mclaudio76.odataspring.demo;
 import java.util.ArrayList;
 import java.util.List;
 
-import mclaudio76.odataspring.core.IODataService;
+
 import mclaudio76.odataspring.core.ODataEntityHelper;
 import mclaudio76.odataspring.core.ODataParamValue;
 import mclaudio76.odataspring.core.annotations.ODataController;
+import mclaudio76.odataspring.core.annotations.ODataCreateEntity;
+import mclaudio76.odataspring.core.annotations.ODataDeleteEntity;
+import mclaudio76.odataspring.core.annotations.ODataReadEntity;
+import mclaudio76.odataspring.core.annotations.ODataReadEntityCollection;
+import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
 
 @ODataController
-public class ProductService implements IODataService<Product> {
+public class ProductService  {
 	
 	private ArrayList<Product> products = new ArrayList<>();
 	private ODataEntityHelper helper	= new ODataEntityHelper();
@@ -22,12 +27,12 @@ public class ProductService implements IODataService<Product> {
 	} 
 	
 	
-	@Override
-	public List<Product> listAll() {
+	@ODataReadEntityCollection(Product.class)
+	public List<Product> listAll(ODataParamValue ... filters) {
 		return products;
 	}
 
-	@Override
+	@ODataReadEntity(Product.class)
 	public Product findByKey(ODataParamValue ... keys) {
 		for(Product p : products) {
 			if(helper.entityMatchesKeys(p, keys)) {
@@ -37,7 +42,7 @@ public class ProductService implements IODataService<Product> {
 		return null;
 	}
 
-	@Override
+	@ODataCreateEntity(Product.class)
 	public Product create(ODataParamValue... values) {
 		Product product = new Product();
 		helper.setFieldsValueFromEntity(product, values);
@@ -45,7 +50,7 @@ public class ProductService implements IODataService<Product> {
 		return product;
 	}
 
-	@Override
+	@ODataDeleteEntity(Product.class)
 	public void delete(ODataParamValue... keys) {
 		Product p = findByKey(keys);
 		if(p != null) {
@@ -53,14 +58,11 @@ public class ProductService implements IODataService<Product> {
 		}
 	}
 
-	@Override
+	@ODataUpdateEntity(Product.class)
 	public Product update(ODataParamValue... values) {
 		return null;
 	}
 
-	@Override
-	public Class<Product> getEntityClass() {
-		return Product.class;
-	}
+	
 
 }

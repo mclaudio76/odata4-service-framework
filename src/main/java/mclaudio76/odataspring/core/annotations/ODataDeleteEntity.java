@@ -8,6 +8,6 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target(METHOD)
-public @interface ODataReadEntity {
+public @interface ODataDeleteEntity {
 	public Class<?> value();
 }

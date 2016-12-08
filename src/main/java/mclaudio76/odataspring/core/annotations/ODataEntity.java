@@ -13,5 +13,5 @@ import mclaudio76.odataspring.core.IODataService;
 public @interface ODataEntity {
 	public String entityName();
 	public String entitySetName();
-	public Class<? extends IODataService<?>> controller();
+	public Class<?> controller();
 }
