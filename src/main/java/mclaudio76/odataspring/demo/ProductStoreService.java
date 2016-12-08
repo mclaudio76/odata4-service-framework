@@ -16,19 +16,25 @@ import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
 @ODataController
 public class ProductStoreService  {
 	
-	private ArrayList<Product> products 	= new ArrayList<>();
-	private ArrayList<Category> categories  = new ArrayList<>();
+	private static ArrayList<Product> products 		= new ArrayList<>();
+	private static ArrayList<Category> categories   = new ArrayList<>();	
+	private static Boolean inited					= false;
 	
 	private ODataEntityHelper helper	= new ODataEntityHelper();
 	
 	public ProductStoreService() {
-		products.add(new Product(1, "Alfa  A1", "Racing car", new Category(1, "Category ALFA")));
-		products.add(new Product(2, "Beta  B1", "Luxury car", new Category(1, "Category ALFA")));
-		products.add(new Product(3, "Gamma G3", "Speedy car", new Category(2, "Category BETA")));
-		products.add(new Product(4, "Delta D4", "City car",   new Category(2, "Category BETA")));
-		
-		categories.add(new Category(1, "Expensive cars"));
-		categories.add(new Category(2, "Cheap cars"));
+		synchronized (inited) {
+			if(!inited) {
+				inited = true;
+				products.add(new Product(1, "Alfa  A1", "Racing car", new Category(1, "Category ALFA")));
+				products.add(new Product(2, "Beta  B1", "Luxury car", new Category(1, "Category ALFA")));
+				products.add(new Product(3, "Gamma G3", "Speedy car", new Category(2, "Category BETA")));
+				products.add(new Product(4, "Delta D4", "City car",   new Category(2, "Category BETA")));
+				
+				categories.add(new Category(1, "Expensive cars"));
+				categories.add(new Category(2, "Cheap cars"));
+			}	
+		}
 	} 
 	
 	
@@ -75,7 +81,7 @@ public class ProductStoreService  {
 	 * Categories
 	 */
 	@ODataReadEntityCollection(Category.class)
-	public List<Category> listAll() {
+	public List<Category> listAllCategories(List<ODataParamValue> keys) {
 		return categories;
 	}
 

@@ -281,8 +281,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				if(annotation.equals(ODataReadEntityCollection.class)) {
 					ODataReadEntityCollection actualAnnotation = (ODataReadEntityCollection) method.getAnnotation(annotation); 
 					matches			&= actualAnnotation.value().equals(workEntityClass);
-					matches			&= mParams.length == 1; // Only one parameter
-					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= Collection.class.isAssignableFrom(returnType); // Must return a Collection
 					if(matches) {
 						targetMethod = method;
@@ -293,9 +292,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				if(annotation.equals(ODataReadEntity.class)) {
 					ODataReadEntity actualAnnotation = (ODataReadEntity) method.getAnnotation(annotation);
 					matches			&= actualAnnotation.value().equals(workEntityClass);
-					matches			&= mParams.length == 1; // Only one parameter
-					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-					matches			&= returnType.isInstance(workEntityClass); // Must return an object
+					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= returnType.equals(workEntityClass); // Must return an object
 					if(matches) {
 						targetMethod = method;
 						break;
@@ -305,9 +303,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				if(annotation.equals(ODataCreateEntity.class)) {
 					ODataCreateEntity actualAnnotation = (ODataCreateEntity) method.getAnnotation(annotation);
 					matches			&= actualAnnotation.value().equals(workEntityClass);
-					matches			&= mParams.length == 1; // Only one parameter
-					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-					matches			&= returnType.isInstance(workEntityClass); // Must return an object
+					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= returnType.equals(workEntityClass); // Must return an object
 					if(matches) {
 						targetMethod = method;
 						break;
@@ -317,8 +314,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				if(annotation.equals(ODataDeleteEntity.class)) {
 					ODataDeleteEntity actualAnnotation = (ODataDeleteEntity) method.getAnnotation(annotation);
 					matches			&= actualAnnotation.value().equals(workEntityClass);
-					matches			&= mParams.length == 1; // Only one parameter
-					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class); // must return nothing
 					if(matches) {
 						targetMethod = method;
@@ -329,9 +325,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				if(annotation.equals(ODataUpdateEntity.class)) {
 					ODataUpdateEntity actualAnnotation = (ODataUpdateEntity) method.getAnnotation(annotation);
 					matches			&= actualAnnotation.value().equals(workEntityClass);
-					matches			&= mParams.length == 1; // Only one parameter
-					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-					matches			&= returnType.isInstance(workEntityClass); // Must return an object
+					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= returnType.equals(workEntityClass); // Must return an object
 					if(matches) {
 						targetMethod = method;
 						break;
