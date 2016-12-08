@@ -11,4 +11,4 @@ import java.lang.annotation.Target;
 public @interface ODataReadEntity {
 	public Class<?> value();
 } 
- 
+  
