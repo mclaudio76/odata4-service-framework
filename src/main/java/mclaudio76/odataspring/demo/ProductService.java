@@ -6,7 +6,9 @@ import java.util.List;
 import mclaudio76.odataspring.core.IODataService;
 import mclaudio76.odataspring.core.ODataEntityHelper;
 import mclaudio76.odataspring.core.ODataParamValue;
+import mclaudio76.odataspring.core.annotations.ODataController;
 
+@ODataController
 public class ProductService implements IODataService<Product> {
 	
 	private ArrayList<Product> products = new ArrayList<>();
