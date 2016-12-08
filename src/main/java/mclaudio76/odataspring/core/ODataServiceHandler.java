@@ -74,12 +74,13 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	@Override
 	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType contentType)	throws ODataApplicationException, ODataLibraryException {
 	  try {
-		  EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo);
-		  Object businessService = instatiateDataService(edmEntitySet.getEntityType());
+		  EdmEntitySet edmEntitySet  = getEdmEntitySet(uriInfo);
+		  Object businessService 	 = instatiateDataService(edmEntitySet.getEntityType());
+		  Class  workEntityClass     = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 		  EntityCollection entitySet = new EntityCollection();
 		  try {
 			  // Search for a method annotated with @ODataReadEntityCollections
-			  Collection<Object> entityList = (Collection<Object>) invokeMethod(businessService,ODataReadEntityCollection.class, null);
+			  Collection<Object> entityList = (Collection<Object>) invokeMethod(businessService,workEntityClass, ODataReadEntityCollection.class, null);
 			  for(Object localEntity : entityList) {
 				  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
 			  }
@@ -101,6 +102,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws  ODataApplicationException, DeserializerException, SerializerException {
 		EdmEntitySet edmEntitySet       = getEdmEntitySet(uriInfo);
 		EdmEntityType edmEntityType     = edmEntitySet.getEntityType();
+		Class  workEntityClass     		= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 		Object businessService 			= instatiateDataService(edmEntitySet.getEntityType());
 		InputStream requestInputStream  = request.getBody();
 		ODataDeserializer deserializer  = initODataItem.createDeserializer(requestFormat);
@@ -111,7 +113,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		  attributes.add(new ODataParamValue(prop));
 		}
 		try {
-		  Object newCreatedEntity   = invokeMethod(businessService, ODataCreateEntity.class,attributes.toArray(new ODataParamValue[attributes.size()]));
+		  Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes.toArray(new ODataParamValue[attributes.size()]));
 		  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, newCreatedEntity);
 		}
 		catch(Exception e) {
@@ -125,9 +127,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
   	   ODataParamValue[] keys	     = getKeyPredicates(uriInfo);
   	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
 	   Object businessService 		 = instatiateDataService(edmEntitySet.getEntityType());
-	   //businessService.delete(keys);
+	   Class  workEntityClass     	 = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 	   try {
-			invokeMethod(businessService, ODataDeleteEntity.class,keys);
+			invokeMethod(businessService, workEntityClass, ODataDeleteEntity.class,keys);
 			response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
 	   }
 	   catch(Exception e) {
@@ -144,8 +146,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	    EdmEntitySet edmEntitySet = getEdmEntitySet(uriInfo);
 	    Object businessService    = instatiateDataService(edmEntitySet.getEntityType());
 	    ODataParamValue params[]  = getKeyPredicates(uriInfo);
+	    Class  workEntityClass    = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 	    try {
-	    	Object readEntity  =  invokeMethod(businessService, ODataReadEntity.class,params);//businessService.findByKey(params);   
+	    	Object readEntity  =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,params);//businessService.findByKey(params);   
 		    EdmEntityType edmEntityType = edmEntitySet.getEntityType();
 		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity);
 	    }
@@ -158,9 +161,10 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	@Override
 	public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
 		 // 1. Retrieve the entity type from the URI
-		  EdmEntitySet edmEntitySet    = getEdmEntitySet(uriInfo);
-		  EdmEntityType edmEntityType  = edmEntitySet.getEntityType();
-		  Object businessService 	   = instatiateDataService(edmEntitySet.getEntityType());
+		  EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
+		  EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
+		  Class  workEntityClass    	= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
+		  Object businessService 	    = instatiateDataService(edmEntitySet.getEntityType());
 		  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
 		  InputStream requestInputStream = request.getBody();
 		  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
@@ -171,7 +175,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			  attributes.add(new ODataParamValue(prop));
 		  }
 		  try {
-			  Object target	= invokeMethod(businessService, ODataUpdateEntity.class,attributes.toArray(new ODataParamValue[attributes.size()]));//businessService.findByKey(params);   //businessService.update(attributes.toArray(new ODataParamValue[attributes.size()]));
+			  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes.toArray(new ODataParamValue[attributes.size()]));//businessService.findByKey(params);   //businessService.update(attributes.toArray(new ODataParamValue[attributes.size()]));
 			  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
 		  }
 		  catch(Exception e) {
@@ -208,6 +212,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		}
 	}
 
+	
+	
 	private void raiseODataApplicationException(String message, HttpStatusCode statusCode) throws ODataApplicationException {
 		 throw new ODataApplicationException(message, statusCode.getStatusCode(),Locale.ENGLISH);
 	}
@@ -262,60 +268,68 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	/// Reflection support for invoking methods.
 	/// Verifies if, given a certain annotation, a method with such annotation exists and accepts expected parameters
-	private Object invokeMethod(Object businessService, Class<? extends Annotation> annotation, ODataParamValue[] params) throws ODataException {
+	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, ODataParamValue[] params) throws ODataException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
 			// Target method must be annotated with required annotation
-			boolean matches  = method.isAnnotationPresent(annotation);
-			// Reading collections of entities
-			if(annotation.equals(ODataReadEntityCollection.class)) {
-				matches			&= mParams.length == 1; // Only one parameter
-				matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-				matches			&= method.getReturnType().isInstance(Collection.class); // Must return a Collection
-				if(matches) {
-					targetMethod = method;
-					break;
+			boolean annotationPresent = method.isAnnotationPresent(annotation);
+			if(annotationPresent) {
+				boolean matches  		  = annotationPresent; 
+				// Reading collections of entities
+				if(annotation.equals(ODataReadEntityCollection.class)) {
+					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+					matches			&= mParams.length == 1; // Only one parameter
+					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= method.getReturnType().isInstance(Collection.class); // Must return a Collection
+					if(matches) {
+						targetMethod = method;
+						break;
+					}
 				}
-			}
-			else // Read of an entity
-			if(annotation.equals(ODataCreateEntity.class)) {
-				matches			&= mParams.length == 1; // Only one parameter
-				matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-				matches			&= method.getReturnType().isInstance(Object.class); // Must return an object
-				if(matches) {
-					targetMethod = method;
-					break;
+				else // Read of an entity
+				if(annotation.equals(ODataCreateEntity.class)) {
+					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+					matches			&= mParams.length == 1; // Only one parameter
+					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
+					if(matches) {
+						targetMethod = method;
+						break;
+					}
 				}
-			}
-			else // Creation of an Entity
-			if(annotation.equals(ODataCreateEntity.class)) {
-				matches			&= mParams.length == 1; // Only one parameter
-				matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-				matches			&= method.getReturnType().isInstance(Object.class); // Must return an object
-				if(matches) {
-					targetMethod = method;
-					break;
+				else // Creation of an Entity
+				if(annotation.equals(ODataCreateEntity.class)) {
+					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+					matches			&= mParams.length == 1; // Only one parameter
+					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
+					if(matches) {
+						targetMethod = method;
+						break;
+					}
 				}
-			}
-			else // Deletion of an Entity
-			if(annotation.equals(ODataCreateEntity.class)) {
-				matches			&= mParams.length == 1; // Only one parameter
-				matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-				matches			&= method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class); // must return nothing
-				if(matches) {
-					targetMethod = method;
-					break;
+				else // Deletion of an Entity
+				if(annotation.equals(ODataCreateEntity.class)) {
+					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+					matches			&= mParams.length == 1; // Only one parameter
+					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class); // must return nothing
+					if(matches) {
+						targetMethod = method;
+						break;
+					}
 				}
-			}
-			else // Update of an entity
-			if(annotation.equals(ODataCreateEntity.class)) {
-				matches			&= mParams.length == 1; // Only one parameter
-				matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
-				matches			&= method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class); // must return nothing
-				if(matches) {
-					targetMethod = method;
-					break;
+				else // Update of an entity
+				if(annotation.equals(ODataCreateEntity.class)) {
+					matches			&= method.getAnnotation(annotation).equals(workEntityClass);
+					matches			&= mParams.length == 1; // Only one parameter
+					matches			&= mParams[0].equals(params.getClass()); // Required parameter must by an array of ODataParamValue
+					matches			&= method.getReturnType().isInstance(workEntityClass); // Must return an object
+					if(matches) {
+						targetMethod = method;
+						break;
+					}
 				}
 			}
 		}
