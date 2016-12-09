@@ -1,7 +1,5 @@
 package mclaudio76.odataspring.core;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
-
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -42,13 +40,11 @@ import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
-import org.apache.olingo.server.api.uri.UriResourceKind;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
-import org.glassfish.hk2.runlevel.CurrentlyRunningException;
 
 import mclaudio76.odataspring.core.annotations.ODataCreateEntity;
 import mclaudio76.odataspring.core.annotations.ODataDeleteEntity;
-import mclaudio76.odataspring.core.annotations.ODataNavigateFromEntityToEntity;
+import mclaudio76.odataspring.core.annotations.ODataNavigation;
 import mclaudio76.odataspring.core.annotations.ODataReadEntity;
 import mclaudio76.odataspring.core.annotations.ODataReadEntityCollection;
 import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
@@ -81,13 +77,6 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
 		try {
 			processReadRequest(request, response, uriInfo, responseFormat);
-			/*EdmEntitySet edmEntitySet   = getEdmEntitySet(uriInfo);
-		    Object businessService      = instatiateDataService(edmEntitySet.getEntityType());
-		    List<ODataParamValue> keys	= getKeyPredicates(uriInfo);
-		    Class  workEntityClass      = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-	    	Object readEntity  =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);//businessService.findByKey(params);   
-		    EdmEntityType edmEntityType = edmEntitySet.getEntityType();
-		    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, readEntity); */
 	    }
 	    catch(Exception e) {
 	    	sendError(response, responseFormat);
@@ -98,23 +87,6 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
 	  try {
 		  processReadRequest(request, response, uriInfo, responseFormat);
-		  
-		 /* EdmEntitySet edmEntitySet  = getEdmEntitySet(uriInfo);
-		  Object businessService 	 = instatiateDataService(edmEntitySet.getEntityType());
-		  Class  workEntityClass     = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-		  EntityCollection entitySet = new EntityCollection();
-		  try {
-			  // Search for a method annotated with @ODataReadEntityCollections
-			  Collection<Object> entityList = (Collection<Object>) invokeMethod(businessService,workEntityClass, ODataReadEntityCollection.class, new ArrayList<ODataParamValue>());
-			  for(Object localEntity : entityList) {
-				  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
-			  }
-		  }
-		  catch(Exception e) {
-			  e.printStackTrace(System.err);
-		  }
-		  serializeCollection(request, response, contentType, edmEntitySet, entitySet); */
-		  
 	  }
 	  catch(Exception e) {
 		  sendError(response, responseFormat);
@@ -137,6 +109,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		 
 		 int lastIndex						 = resourcePaths.size()-1;
 		 for(int uriIndex = 0; uriIndex < resourcePaths.size(); uriIndex++) {
+			System.out.println("Processing part "+uriIndex+" of "+lastIndex);
 			UriResource currentResourcePart = resourcePaths.get(uriIndex);
 			// If the resourcePart is an UriResourceEntitySet, we are working on a EntitySet or an Entity directly,
 			// i.e we are not navigating across entities (Products(1)->Category->Products()
@@ -174,7 +147,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   	  currentWorkingEntity =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);
    			      // If we reached the last segment, we send to the client the serialized entity.
 				  if(uriIndex == lastIndex) {
-					  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity);
+					  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity);
 				  }
 			   }
 			}
@@ -182,19 +155,60 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				UriResourceNavigation uriEntityNavigation = (UriResourceNavigation) currentResourcePart;
 				EdmEntityType edmEntityType 		 = uriEntityNavigation.getProperty().getType();
 				Object businessService      		 = instatiateDataService(edmEntityType);
-				List<ODataParamValue> params  		 = new ArrayList<ODataParamValue>(); 
+				List<ODataParamValue> params  		 = getParametersForNavigation(uriEntityNavigation);
+				// We are navigating from an entity to a collection (relation: one to many).
+				// In our example is http://localhost:8080/DataService/ProductStore/Categories(1)/Products.
+				// 
 				if(uriEntityNavigation.isCollection()) {
-					
-				}
-				else { // We are navigating from an Entity to a RelatedEntity.
 					String name							 =  uriEntityNavigation.getProperty().getName();
 					EdmBindingTarget edmBindingTarget    =  currentEdmEntitySet.getRelatedBindingTarget(uriEntityNavigation.getProperty().getName()); 
 					Class  targetEntityClass      		 =  edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
 					String relatedEntitySetName			 =  oDataHelper.getEntitySetName(targetEntityClass);
 					EdmEntitySet	 edmEntitySet		 =  edmBindingTarget.getEntityContainer().getEntitySet(relatedEntitySetName);
-					currentWorkingEntity 				 =  invokeNavigationMethod(businessService, currentWorkingEntity.getClass(), targetEntityClass, ODataNavigateFromEntityToEntity.class, currentWorkingEntity, params);
+					currentReadCollection 				 =  (Collection) invokeNavigationMethod(businessService, currentWorkingEntity.getClass(), targetEntityClass, ODataNavigation.class, currentWorkingEntity,params);
+					currentEdmEntitySet					 =  edmEntitySet;
+					currentEdmEntityType				 =  edmEntityType; 
+					// If the query returns a single object, I treat it as an entity request.
+					if(uriIndex == lastIndex) {
+						if(currentReadCollection.size() == 1) {
+							currentWorkingEntity = currentReadCollection.iterator().next();
+							serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity);
+						}
+						else {
+							EntityCollection entityCollection = new EntityCollection();
+							for(Object localEntity : currentReadCollection) {
+								entityCollection.getEntities().add(oDataHelper.buildEntity(localEntity));  
+							}
+							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection);
+						}
+					}
+				}
+				else { 
+					// We are navigating from an Entity to a RelatedEntity.
+					// This may be the case of a one-to-one relationship as well as a one-to-many relationship where a single item is returned;
+					// it's the case for example of uri In our example is http://localhost:8080/DataService/ProductStore/Categories(1)/Products(1)
+					// Generally speaking, the method for handling a one-to-many relationship is annotated with @ODataNavigation and returns a collection.
+					// To handle properly further navigations (i.e In our example is http://localhost:8080/DataService/ProductStore/Categories(1)/Products(1)/Category)
+					// if the returned collection contains a single element, we set the currentWorkingEntity reference to the only one item in the collection
+					// and we serialize a single entity (not the whole collection).
+					EdmBindingTarget edmBindingTarget    =  currentEdmEntitySet.getRelatedBindingTarget(uriEntityNavigation.getProperty().getName()); 
+					Class  targetEntityClass      		 =  edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
+					String relatedEntitySetName			 =  oDataHelper.getEntitySetName(targetEntityClass);
+					EdmEntitySet	 edmEntitySet		 =  edmBindingTarget.getEntityContainer().getEntitySet(relatedEntitySetName);
+					Object result						 =  invokeNavigationMethod(businessService, currentWorkingEntity.getClass(), targetEntityClass, ODataNavigation.class, currentWorkingEntity,params);
+					if(result instanceof Collection) {
+						Collection readCollection		 = (Collection) result;
+						if(readCollection.size() == 1) {
+							currentWorkingEntity  = readCollection.iterator().next();
+						}
+					}
+					else {
+						currentWorkingEntity = result;
+					}
+					currentEdmEntitySet					 =  edmEntitySet;
+					currentEdmEntityType				 =  edmEntityType;
 					 if(uriIndex == lastIndex) {
-					    sendEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity);
+					    serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity);
 					 }
 				}
 			}
@@ -206,6 +220,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	
 	
+	
+
 	
 
 	@Override
@@ -224,7 +240,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		}
 		try {
 		  Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes);
-		  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, newCreatedEntity);
+		  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, newCreatedEntity);
 		}
 		catch(Exception e) {
 		  sendError(response, responseFormat);
@@ -269,7 +285,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		  }
 		  try {
 			  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
-			  sendEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
+			  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
 		  }
 		  catch(Exception e) {
 	    	 sendError(response, responseFormat);
@@ -279,7 +295,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	/// Helper methods
 	
-	private void sendEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, Object object) throws SerializerException, ODataException {
+	private void serializeEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, Object object) throws SerializerException, ODataException {
 
 		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
 		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
@@ -338,6 +354,14 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	    return keys;
 	}
 	
+	private List<ODataParamValue> getParametersForNavigation(UriResourceNavigation uriNavigation) {
+		 List<UriParameter> keyPredicates 			= uriNavigation.getKeyPredicates();
+		 List<ODataParamValue> keys = new ArrayList<>();
+		 for(UriParameter uri : keyPredicates)  {
+		   	keys.add(new ODataParamValue(uri));
+		 }
+		 return keys;
+	}
 	
 	
 	
@@ -455,8 +479,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				boolean matches  		  = annotationPresent; 
 				Class<?>   returnType	  = method.getReturnType();
 				// Reading collections of entities
-				if(annotation.equals(ODataNavigateFromEntityToEntity.class)) {
-					ODataNavigateFromEntityToEntity actualAnnotation = (ODataNavigateFromEntityToEntity) method.getAnnotation(annotation); 
+				if(annotation.equals(ODataNavigation.class)) {
+					ODataNavigation actualAnnotation = (ODataNavigation) method.getAnnotation(annotation); 
 					matches			&= actualAnnotation.fromEntity().equals(sourceEntityClass);
 					matches			&= actualAnnotation.toEntity().equals(destinationEntityClass);
 					if(matches) {

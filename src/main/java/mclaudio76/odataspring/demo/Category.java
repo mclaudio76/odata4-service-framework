@@ -1,5 +1,6 @@
 package mclaudio76.odataspring.demo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -19,7 +20,7 @@ public class Category {
 	public String  categoryDescription;
 	
 	@ODataNavigationProperty(entityType=Product.class, name="Products", path="Products", target="Products", nullable=false, partner="Category")
-	public List<Product> products;
+	public List<Product> products = new ArrayList<Product>();
 
 	public Category() {
 		this(0,"");

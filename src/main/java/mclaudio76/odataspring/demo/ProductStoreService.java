@@ -9,7 +9,7 @@ import mclaudio76.odataspring.core.ODataParamValue;
 import mclaudio76.odataspring.core.annotations.ODataController;
 import mclaudio76.odataspring.core.annotations.ODataCreateEntity;
 import mclaudio76.odataspring.core.annotations.ODataDeleteEntity;
-import mclaudio76.odataspring.core.annotations.ODataNavigateFromEntityToEntity;
+import mclaudio76.odataspring.core.annotations.ODataNavigation;
 import mclaudio76.odataspring.core.annotations.ODataReadEntity;
 import mclaudio76.odataspring.core.annotations.ODataReadEntityCollection;
 import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
@@ -27,13 +27,27 @@ public class ProductStoreService  {
 		synchronized (inited) {
 			if(!inited) {
 				inited = true;
+				
 				Category c1 = new Category(1, "Expensive cars");
 				Category c2 = new Category(2, "Great cars");
 				
-				products.add(new Product(1, "Alfa  A1", "Racing car", c1));
-				products.add(new Product(2, "Beta  B1", "Luxury car", c2));
-				products.add(new Product(3, "Gamma G3", "Speedy car", c2));
-				products.add(new Product(4, "Delta D4", "City car",   c1));
+				Product p1 = new Product(1, "Alfa  A1", "Racing car", c1);
+				Product p2 = new Product(2, "Beta  B1", "Luxury car", c2);
+				Product p3 = new Product(3, "Gamma G3", "Speedy car", c2);
+				Product p4 = new Product(4, "Delta D4", "City car",   c1);
+				
+				c1.products.add(p1);
+				c1.products.add(p4);
+				
+				c2.products.add(p2);
+				c2.products.add(p3);
+				
+				
+				products.add(p1);
+				products.add(p2);
+				products.add(p3);
+				products.add(p4);
+				
 				
 				categories.add(c1);
 				categories.add(c2);
@@ -82,9 +96,20 @@ public class ProductStoreService  {
 
 	// Navigation, from product to categories
 	
-	@ODataNavigateFromEntityToEntity(fromEntity=Product.class, toEntity=Category.class)
-	public Category getAssociatedCategory(Product item, List<ODataParamValue> values) {
+	@ODataNavigation(fromEntity=Product.class, toEntity=Category.class)
+	public Category getAssociatedCategory(Product item, List<ODataParamValue> params) {
 		return item.category;
+	}
+	
+	@ODataNavigation(fromEntity=Category.class, toEntity=Product.class)
+	public List<Product> getAssociatedProducts(Category item, List<ODataParamValue> params) {
+		List<Product> result = new ArrayList<Product>();
+		for(Product p : item.products) {
+			if(helper.entityMatchesKeys(p, params)) {
+				result.add(p);
+			}
+		}
+		return result;
 	}
 	
 	
