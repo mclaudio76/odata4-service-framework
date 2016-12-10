@@ -3,16 +3,15 @@ package mclaudio76.odataspring.demo;
 import java.util.ArrayList;
 import java.util.List;
 
-
-import mclaudio76.odataspring.core.ODataEntityHelper;
-import mclaudio76.odataspring.core.ODataParamValue;
-import mclaudio76.odataspring.core.annotations.ODataController;
-import mclaudio76.odataspring.core.annotations.ODataCreateEntity;
-import mclaudio76.odataspring.core.annotations.ODataDeleteEntity;
-import mclaudio76.odataspring.core.annotations.ODataNavigation;
-import mclaudio76.odataspring.core.annotations.ODataReadEntity;
-import mclaudio76.odataspring.core.annotations.ODataReadEntityCollection;
-import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
+import mclaudio76.odata4fx.core.ODataEntityHelper;
+import mclaudio76.odata4fx.core.ODataParamValue;
+import mclaudio76.odata4fx.core.annotations.ODataController;
+import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
+import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
+import mclaudio76.odata4fx.core.annotations.ODataNavigation;
+import mclaudio76.odata4fx.core.annotations.ODataReadEntity;
+import mclaudio76.odata4fx.core.annotations.ODataReadEntityCollection;
+import mclaudio76.odata4fx.core.annotations.ODataUpdateEntity;
 
 @ODataController
 public class ProductStoreService  {

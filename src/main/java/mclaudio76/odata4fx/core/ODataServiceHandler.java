@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.core;
+package mclaudio76.odata4fx.core;
 
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -42,12 +42,12 @@ import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
 
-import mclaudio76.odataspring.core.annotations.ODataCreateEntity;
-import mclaudio76.odataspring.core.annotations.ODataDeleteEntity;
-import mclaudio76.odataspring.core.annotations.ODataNavigation;
-import mclaudio76.odataspring.core.annotations.ODataReadEntity;
-import mclaudio76.odataspring.core.annotations.ODataReadEntityCollection;
-import mclaudio76.odataspring.core.annotations.ODataUpdateEntity;
+import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
+import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
+import mclaudio76.odata4fx.core.annotations.ODataNavigation;
+import mclaudio76.odata4fx.core.annotations.ODataReadEntity;
+import mclaudio76.odata4fx.core.annotations.ODataReadEntityCollection;
+import mclaudio76.odata4fx.core.annotations.ODataUpdateEntity;
 
 /****
  * 

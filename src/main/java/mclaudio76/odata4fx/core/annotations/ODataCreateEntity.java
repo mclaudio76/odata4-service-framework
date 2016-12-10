@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.core.annotations;
+package mclaudio76.odata4fx.core.annotations;
 
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -8,7 +8,6 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target(METHOD)
-public @interface ODataNavigation {
-	public Class<?> fromEntity();
-	public Class<?> toEntity();
+public @interface ODataCreateEntity {
+	public Class<?> value();
 }

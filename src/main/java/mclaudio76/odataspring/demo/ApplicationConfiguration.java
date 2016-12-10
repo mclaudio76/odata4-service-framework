@@ -5,7 +5,7 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import mclaudio76.odataspring.core.Endpoint;
+import mclaudio76.odata4fx.core.Endpoint;
 
 @Configuration
 public class ApplicationConfiguration {

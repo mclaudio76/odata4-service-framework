@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.core;
+package mclaudio76.odata4fx.core;
 
 import java.util.ArrayList;
 import java.util.List;

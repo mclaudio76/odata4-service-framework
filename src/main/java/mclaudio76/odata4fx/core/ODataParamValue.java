@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.core;
+package mclaudio76.odata4fx.core;
 
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.server.api.uri.UriParameter;

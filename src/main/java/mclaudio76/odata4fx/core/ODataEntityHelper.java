@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.core;
+package mclaudio76.odata4fx.core;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -16,10 +16,10 @@ import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.ex.ODataException;
 
-import mclaudio76.odataspring.core.annotations.ODataController;
-import mclaudio76.odataspring.core.annotations.ODataEntity;
-import mclaudio76.odataspring.core.annotations.ODataField;
-import mclaudio76.odataspring.core.annotations.ODataNavigationProperty;
+import mclaudio76.odata4fx.core.annotations.ODataController;
+import mclaudio76.odata4fx.core.annotations.ODataEntity;
+import mclaudio76.odata4fx.core.annotations.ODataField;
+import mclaudio76.odata4fx.core.annotations.ODataNavigationProperty;
 	
 public class ODataEntityHelper {
 	
