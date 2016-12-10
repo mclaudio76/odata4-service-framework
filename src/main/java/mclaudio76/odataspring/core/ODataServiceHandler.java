@@ -61,7 +61,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	private ServiceMetadata 	initServiceMetaData;
 	private ODataEntityHelper 	oDataHelper;
 	private GenericEDMProvider  edmProvider;
-	
+	 
 	public ODataServiceHandler(GenericEDMProvider provider) {
 		this.edmProvider = provider;
 	}
@@ -120,7 +120,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   Object businessService      		 = instatiateDataService(edmEntityType);
 			   Class  workEntityClass      		 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
 			   List<ODataParamValue> keys  		 = getKeyPredicates(uriInfo);
-			   // Is it a collection ?
+			   // Is it a collection....
 			   if(uriEntitySet.isCollection()) {
 				  EntityCollection entitySet = new EntityCollection();
 				  try {
