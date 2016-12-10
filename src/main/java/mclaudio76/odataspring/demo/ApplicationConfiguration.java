@@ -18,6 +18,6 @@ public class ApplicationConfiguration {
 		
 	    return new ServletRegistrationBean(endPoint,"/ProductStore/*");
 	}
-	 
+	  
 	
 }
