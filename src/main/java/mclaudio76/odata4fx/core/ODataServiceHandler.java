@@ -41,6 +41,7 @@ import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
+import org.springframework.http.HttpStatus;
 
 import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
 import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
@@ -99,7 +100,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	 * 
 	 */
 	
-	private void processReadRequest(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataException {
+	private void processReadRequest(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException {
 		 List<UriResource> resourcePaths 	 = uriInfo.getUriResourceParts();
 		 
 		 Object currentWorkingEntity		 	 = null;
@@ -137,7 +138,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					  }
 				  }
 				  catch(Exception e) {
-					 throw new ODataException(e.getMessage());
+					 throw createException("An internal error occurred ",HttpStatusCode.INTERNAL_SERVER_ERROR);
 				  }
 			   }
 			   // ... or a single entity ?
@@ -177,7 +178,12 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 						else {
 							EntityCollection entityCollection = new EntityCollection();
 							for(Object localEntity : currentReadCollection) {
-								entityCollection.getEntities().add(oDataHelper.buildEntity(localEntity));  
+								try {
+									entityCollection.getEntities().add(oDataHelper.buildEntity(localEntity));
+								}
+								catch(ODataException oe) {
+									createException(oe.getMessage(), HttpStatusCode.INTERNAL_SERVER_ERROR);
+								}
 							}
 							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection);
 						}
@@ -216,12 +222,6 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
  		 }
 		 
 	}
-	
-	
-	
-	
-	
-
 	
 
 	@Override
@@ -269,44 +269,49 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	@Override
 	public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
-		 // 1. Retrieve the entity type from the URI
-		  EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
-		  EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
-		  Class  workEntityClass    	= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-		  Object businessService 	    = instatiateDataService(edmEntitySet.getEntityType());
-		  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
-		  InputStream requestInputStream = request.getBody();
-		  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
-		  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
-		  Entity requestEntity 			 = result.getEntity();
-		  List<ODataParamValue> attributes = new ArrayList<>();
-		  for(Property prop : requestEntity.getProperties()) {
-			  attributes.add(new ODataParamValue(prop));
-		  }
-		  try {
-			  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
-			  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
-		  }
-		  catch(Exception e) {
-	    	 sendError(response, responseFormat);
-		  }
+	 // 1. Retrieve the entity type from the URI
+	  EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
+	  EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
+	  Class  workEntityClass    	= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
+	  Object businessService 	    = instatiateDataService(edmEntitySet.getEntityType());
+	  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
+	  InputStream requestInputStream = request.getBody();
+	  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
+	  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
+	  Entity requestEntity 			 = result.getEntity();
+	  List<ODataParamValue> attributes = new ArrayList<>();
+	  for(Property prop : requestEntity.getProperties()) {
+		  attributes.add(new ODataParamValue(prop));
+	  }
+	  try {
+		  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
+		  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
+	  }
+	  catch(Exception e) {
+    	 sendError(response, responseFormat);
+	  }
 		
 	}
 	
 	/// Helper methods
 	
-	private void serializeEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, Object object) throws SerializerException, ODataException {
-
+	private void serializeEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, Object object) throws ODataApplicationException {
+		try {
 		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
 		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
-
 		  EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
 		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
 		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, options);
-
 		  response.setContent(serializedResponse.getContent());
 		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
 		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+		}
+		catch(SerializerException se) {
+			throw createException("An exception occurred during serialization of response ("+se.getMessage()+")", HttpStatusCode.INTERNAL_SERVER_ERROR);
+		}
+		catch(ODataException oe) {
+			throw createException("An exception occurred during serialization of response ("+oe.getMessage()+")", HttpStatusCode.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	
@@ -315,24 +320,22 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			Class clz = edmProvider.findActualClass(entityType.getFullQualifiedName());
 			return oDataHelper.getController(clz);
 		}
-		catch(ODataException exp) {
-			raiseODataApplicationException(exp.getMessage(), HttpStatusCode.NOT_ACCEPTABLE);
-			return null;
+		catch(Exception exp) {
+			throw createException(exp.getMessage(), HttpStatusCode.BAD_REQUEST);
 		}
 	}
 
 	
 	
-	private void raiseODataApplicationException(String message, HttpStatusCode statusCode) throws ODataApplicationException {
-		 throw new ODataApplicationException(message, statusCode.getStatusCode(),Locale.ENGLISH);
+	private ODataApplicationException createException(String message, HttpStatusCode statusCode) {
+		 return new ODataApplicationException(message, statusCode.getStatusCode(),Locale.ENGLISH);
 	}
 
 	
 	private EdmEntitySet getEdmEntitySet(UriInfoResource uriInfo) throws ODataApplicationException {
         List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
         if (!(resourcePaths.get(0) instanceof UriResourceEntitySet)) {
-            throw new ODataApplicationException("Invalid resource type for first segment.",
-                      HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ENGLISH);
+            throw new ODataApplicationException("Invalid resource type for first segment.", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ENGLISH);
         }
         UriResourceEntitySet uriResource = (UriResourceEntitySet) resourcePaths.get(0);
         return uriResource.getEntitySet();
@@ -376,22 +379,27 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	}
 
 	
-	private void serializeCollection(ODataRequest request, ODataResponse response, ContentType contentType, EdmEntitySet edmEntitySet, EntityCollection entitySet) throws SerializerException {
-		  ODataSerializer serializer = initODataItem.createSerializer(contentType);
-		  EdmEntityType edmEntityType = edmEntitySet.getEntityType();
-		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
-		  final String id = request.getRawBaseUri() + "/" + edmEntitySet.getName();
-		  EntityCollectionSerializerOptions opts = EntityCollectionSerializerOptions.with().id(id).contextURL(contextUrl).build();
-		  SerializerResult serializerResult = serializer.entityCollection(initServiceMetaData, edmEntityType, entitySet, opts);
-		  InputStream serializedContent = serializerResult.getContent();
-		  response.setContent(serializedContent);
-		  sendData(response, contentType);
+	private void serializeCollection(ODataRequest request, ODataResponse response, ContentType contentType, EdmEntitySet edmEntitySet, EntityCollection entitySet) throws ODataApplicationException {
+		  try {
+			  ODataSerializer serializer = initODataItem.createSerializer(contentType);
+			  EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+			  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
+			  final String id = request.getRawBaseUri() + "/" + edmEntitySet.getName();
+			  EntityCollectionSerializerOptions opts = EntityCollectionSerializerOptions.with().id(id).contextURL(contextUrl).build();
+			  SerializerResult serializerResult = serializer.entityCollection(initServiceMetaData, edmEntityType, entitySet, opts);
+			  InputStream serializedContent = serializerResult.getContent();
+			  response.setContent(serializedContent);
+			  sendData(response, contentType);
+		  }
+		  catch(Exception e) {
+			  createException("Internal error occurred ", HttpStatusCode.INTERNAL_SERVER_ERROR);
+		  }
 	}
 	
 
 	/// Reflection support for invoking methods.
 	/// Verifies if, given a certain annotation, a method with such annotation exists and accepts expected parameters
-	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, List<ODataParamValue> params) throws ODataException {
+	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, List<ODataParamValue> params) throws ODataApplicationException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
@@ -458,18 +466,18 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			}
 		}
 		if(targetMethod == null) {
-			throw new ODataException("No suitable method found ");
+			throw createException("No method found to process request", HttpStatusCode.BAD_REQUEST);
 		}
 		try {
 			return targetMethod.invoke(businessService, (Object) params);
 		}
 		catch(Exception e) {
-			throw new ODataException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName());
+			throw createException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName()+"; original error is "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR);
 		}
 	}
 	
 	
-	private Object invokeNavigationMethod(Object businessService, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, List<ODataParamValue> params) throws ODataException {
+	private Object invokeNavigationMethod(Object businessService, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, List<ODataParamValue> params) throws ODataApplicationException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
@@ -491,13 +499,13 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			}
 		}
 		if(targetMethod == null) {
-			throw new ODataException("No suitable method found for navigation.");
+			throw createException("No method found to process request", HttpStatusCode.BAD_REQUEST);
 		}
 		try {
 			return targetMethod.invoke(businessService, masterEntity, (Object) params);
 		}
 		catch(Exception e) {
-			throw new ODataException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName());
+			throw createException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName()+"; original error is "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR);
 		}
 	}
 	

@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.Property;
@@ -15,6 +16,8 @@ import org.apache.olingo.commons.api.edm.provider.CsdlNavigationPropertyBinding;
 import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.ex.ODataException;
+import org.apache.olingo.commons.api.http.HttpStatusCode;
+import org.apache.olingo.server.api.ODataApplicationException;
 
 import mclaudio76.odata4fx.core.annotations.ODataController;
 import mclaudio76.odata4fx.core.annotations.ODataEntity;
@@ -33,13 +36,13 @@ public class ODataEntityHelper {
 		}
 	}
 	
-	public String getEntitySetName(Class<?> clz) throws ODataException {
+	public String getEntitySetName(Class<?> clz) throws ODataApplicationException {
 		if(clz.isAnnotationPresent(ODataEntity.class)) {
 			ODataEntity metaData = (ODataEntity) clz.getAnnotation(ODataEntity.class);
 			return metaData.entitySetName();
 		}
 		else {
-			throw new ODataException("Object isn't annotated with @ODataEntity ");
+			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ENGLISH);
 		}
 	}
 	
