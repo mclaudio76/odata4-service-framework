@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.demo;
+package mclaudio76.odata4fx.demo;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;

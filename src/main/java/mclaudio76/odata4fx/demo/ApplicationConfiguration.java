@@ -1,4 +1,4 @@
-package mclaudio76.odataspring.demo;
+package mclaudio76.odata4fx.demo;
 
 
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
