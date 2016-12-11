@@ -88,6 +88,65 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
   	   processReadRequest(request, response, uriInfo, responseFormat);
 	}
+	
+	@Override
+	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws  ODataApplicationException {
+		try {
+			EdmEntitySet edmEntitySet       = getEdmEntitySet(uriInfo);
+			EdmEntityType edmEntityType     = edmEntitySet.getEntityType();
+			Class  workEntityClass     		= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
+			Object businessService 			= instantiateDataService(edmEntitySet.getEntityType());
+			InputStream requestInputStream  = request.getBody();
+			ODataDeserializer deserializer  = initODataItem.createDeserializer(requestFormat);
+			DeserializerResult result 	    = deserializer.entity(requestInputStream, edmEntityType);
+			Entity requestEntity 		    = result.getEntity();
+			List<ODataParameter> attributes = new ArrayList<>();
+			for(Property prop : requestEntity.getProperties()) {
+			  attributes.add(new ODataParameter(prop));
+			}
+			Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes);
+			Entity actualODataEntity  = oDataHelper.buildEntity(newCreatedEntity);
+			serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity);
+		}
+		catch(Exception e) {
+		   throw createException(" Method [createEntity] raised an exception "+e.getMessage(), HttpStatusCode.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	
+	@Override
+	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
+  	   List<ODataParameter> keys	     = getKeyPredicates(uriInfo);
+  	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
+	   Object businessService 		 = instantiateDataService(edmEntitySet.getEntityType());
+	   Class  workEntityClass     	 = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
+	   invokeMethod(businessService, workEntityClass, ODataDeleteEntity.class,keys);
+	   response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
+	}
+
+
+	
+
+	@Override
+	public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
+	 // 1. Retrieve the entity type from the URI
+	  EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
+	  EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
+	  Class  workEntityClass    	= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
+	  Object businessService 	    = instantiateDataService(edmEntitySet.getEntityType());
+	  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
+	  InputStream requestInputStream = request.getBody();
+	  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
+	  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
+	  Entity requestEntity 			 = result.getEntity();
+	  List<ODataParameter> attributes = new ArrayList<>();
+	  for(Property prop : requestEntity.getProperties()) {
+		  attributes.add(new ODataParameter(prop));
+	  }
+	  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
+	  Entity actualODataEntity  = oDataHelper.buildEntity(target);
+	  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity);
+	}
 
 	
 	/****
@@ -311,64 +370,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	
 
-	@Override
-	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws  ODataApplicationException {
-		try {
-			EdmEntitySet edmEntitySet       = getEdmEntitySet(uriInfo);
-			EdmEntityType edmEntityType     = edmEntitySet.getEntityType();
-			Class  workEntityClass     		= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-			Object businessService 			= instantiateDataService(edmEntitySet.getEntityType());
-			InputStream requestInputStream  = request.getBody();
-			ODataDeserializer deserializer  = initODataItem.createDeserializer(requestFormat);
-			DeserializerResult result 	    = deserializer.entity(requestInputStream, edmEntityType);
-			Entity requestEntity 		    = result.getEntity();
-			List<ODataParameter> attributes = new ArrayList<>();
-			for(Property prop : requestEntity.getProperties()) {
-			  attributes.add(new ODataParameter(prop));
-			}
-			Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes);
-			Entity actualODataEntity  = oDataHelper.buildEntity(newCreatedEntity);
-			serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity);
-		}
-		catch(Exception e) {
-		   throw createException(" Method [createEntity] raised an exception "+e.getMessage(), HttpStatusCode.INTERNAL_SERVER_ERROR);
-		}
-	}
-
 	
-	@Override
-	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
-  	   List<ODataParameter> keys	     = getKeyPredicates(uriInfo);
-  	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
-	   Object businessService 		 = instantiateDataService(edmEntitySet.getEntityType());
-	   Class  workEntityClass     	 = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-	   invokeMethod(businessService, workEntityClass, ODataDeleteEntity.class,keys);
-	   response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
-	}
-
-
-	
-
-	@Override
-	public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat)	throws ODataApplicationException, ODataLibraryException {
-	 // 1. Retrieve the entity type from the URI
-	  EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
-	  EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
-	  Class  workEntityClass    	= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-	  Object businessService 	    = instantiateDataService(edmEntitySet.getEntityType());
-	  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
-	  InputStream requestInputStream = request.getBody();
-	  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
-	  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
-	  Entity requestEntity 			 = result.getEntity();
-	  List<ODataParameter> attributes = new ArrayList<>();
-	  for(Property prop : requestEntity.getProperties()) {
-		  attributes.add(new ODataParameter(prop));
-	  }
-	  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
-	  Entity actualODataEntity  = oDataHelper.buildEntity(target);
-	  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity);
-	}
 	
 	/// Helper methods
 	
