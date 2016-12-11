@@ -193,6 +193,9 @@ public class ODataEntityHelper {
 	}
 	
 	public Entity buildEntity(Object entity) throws ODataApplicationException {
+		if(entity == null) {
+			   throw new ODataApplicationException("Cannot handle a null entity. ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
+		}
 		Class<?> entityClass = entity.getClass();
 		if(entityClass.isAnnotationPresent(ODataEntity.class)) {
 			ODataEntity entityAnnotation = (ODataEntity) entity.getClass().getAnnotation(ODataEntity.class);

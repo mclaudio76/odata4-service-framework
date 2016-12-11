@@ -177,6 +177,10 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				List<ODataParameter> params  		 = getParametersForNavigation(uriEntityNavigation);
 				addSystemQueryOptions(params,countOption, topOption, skipOption,orderingOption);
 				
+				if(currentWorkingEntity == null) {
+					throw createException("Required navigation for a NULL Object", HttpStatusCode.INTERNAL_SERVER_ERROR);
+				}
+				
 				// We are navigating from an entity to a collection (relation: one to many).
 				// In our example is http://localhost:8080/DataService/ProductStore/Categories(1)/Products.
 				// 
@@ -233,6 +237,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 						if(readCollection.size() == 1) {
 							currentWorkingEntity  = readCollection.iterator().next();
 						}
+						if(readCollection.isEmpty()) {
+							throw createException("No data found with required parameters.", HttpStatusCode.NOT_FOUND);
+						}
 					}
 					else {
 						currentWorkingEntity = result;
@@ -241,7 +248,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					currentEdmEntityType				 =  edmEntityType;
 					 if(uriIndex == lastIndex) {
 						Entity actualODataEntity  = oDataHelper.buildEntity(currentWorkingEntity);
-						if(expandOption != null) {
+						if(expandOption != null && currentWorkingEntity != null) {
 						    applyExpansion(currentEdmEntitySet, actualODataEntity,currentWorkingEntity, expandOption);
 						}
 					    serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption);
