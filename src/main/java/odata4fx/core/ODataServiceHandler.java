@@ -59,12 +59,7 @@ import odata4fx.core.annotations.ODataReadEntity;
 import odata4fx.core.annotations.ODataReadEntityCollection;
 import odata4fx.core.annotations.ODataUpdateEntity;
 
-/****
- * 
- * Note: the first segment of the service urls corresponds to entity set.
- *
- * 
- */
+
 
 public class ODataServiceHandler implements EntityCollectionProcessor, EntityProcessor {
 	private OData 				initODataItem;
