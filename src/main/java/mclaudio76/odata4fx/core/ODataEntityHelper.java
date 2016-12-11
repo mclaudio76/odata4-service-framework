@@ -26,13 +26,15 @@ import mclaudio76.odata4fx.core.annotations.ODataNavigationProperty;
 	
 public class ODataEntityHelper {
 	
-	public String getEntityName(Class<?> clz) throws ODataException {
+	private static Locale locale = Locale.ENGLISH;
+	
+	public String getEntityName(Class<?> clz) throws ODataApplicationException {
 		if(clz.isAnnotationPresent(ODataEntity.class)) {
 			ODataEntity metaData = (ODataEntity) clz.getAnnotation(ODataEntity.class);
 			return metaData.entityName();
 		}
 		else {
-			throw new ODataException("Object isn't annotated with @ODataEntity ");
+			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
@@ -42,32 +44,32 @@ public class ODataEntityHelper {
 			return metaData.entitySetName();
 		}
 		else {
-			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ENGLISH);
+			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
-	public Object getController(Class<?> clz) throws ODataException {
+	public Object getController(Class<?> clz) throws ODataApplicationException {
 		try {
 			if(clz.isAnnotationPresent(ODataEntity.class)) {
 				ODataEntity metaData  = (ODataEntity) clz.getAnnotation(ODataEntity.class);
 				Class controllerClass = metaData.controller();
 				if(!controllerClass.isAnnotationPresent(ODataController.class)) {
-					throw new ODataException(" Class "+controllerClass.getCanonicalName()+" isn't annotated with @ODataController ");
+					throw new ODataApplicationException("Class ["+controllerClass+"] is not annotated with @ODataController",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 				}
 				return  metaData.controller().newInstance();
 			}
 			else {
-				throw new ODataException("Object isn't annotated with @ODataEntity ");
+				throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 			}
 		}
-		catch(InstantiationException | IllegalAccessException  | ODataException oe) {
-			throw new ODataException("Unable to instantiate a controller.");
+		catch(Exception e) {
+			throw new ODataApplicationException("Unable to instantiate a controller for class ["+clz.getName()+"], reason is = "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
 	
 	
-	public List<CsdlProperty> getClassAttributes(Class<?> entity) throws ODataException {
+	public List<CsdlProperty> getClassAttributes(Class<?> entity) throws ODataApplicationException {
 		if(entity.isAnnotationPresent(ODataEntity.class)) {
 			ArrayList<CsdlProperty> properties = new ArrayList<>();
 			for(Field field : entity.getDeclaredFields()) {
@@ -82,11 +84,11 @@ public class ODataEntityHelper {
 			return properties;
 		}
 		else {
-			throw new ODataException("Object isn't annotated with @ODataEntity ");
+			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
-	public List<CsdlNavigationProperty> getNavigationProperties(Class<?> entity,String nameSpace) throws ODataException {
+	public List<CsdlNavigationProperty> getNavigationProperties(Class<?> entity,String nameSpace) throws ODataApplicationException {
 		if(entity.isAnnotationPresent(ODataEntity.class)) {
 			ArrayList<CsdlNavigationProperty> properties = new ArrayList<>();
 			for(Field field : entity.getDeclaredFields()) {
@@ -101,11 +103,11 @@ public class ODataEntityHelper {
 			return properties;
 		}
 		else {
-			throw new ODataException("Object isn't annotated with @ODataEntity ");
+			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
-	public List<CsdlNavigationPropertyBinding> getNavigationPropertiesForEntitySet(Class<?> entity) throws ODataException {
+	public List<CsdlNavigationPropertyBinding> getNavigationPropertiesForEntitySet(Class<?> entity) throws ODataApplicationException {
 		if(entity.isAnnotationPresent(ODataEntity.class)) {
 			ArrayList<CsdlNavigationPropertyBinding> properties = new ArrayList<>();
 			for(Field field : entity.getDeclaredFields()) {
@@ -120,7 +122,7 @@ public class ODataEntityHelper {
 			return properties;
 		}
 		else {
-			throw new ODataException("Object isn't annotated with @ODataEntity ");
+			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
@@ -151,7 +153,7 @@ public class ODataEntityHelper {
 		return navPropBinding;
 	}
 
-	public List<CsdlPropertyRef> getClassKeys(Class<?> entity) throws ODataException {
+	public List<CsdlPropertyRef> getClassKeys(Class<?> entity) throws ODataApplicationException {
 		if(entity.isAnnotationPresent(ODataEntity.class)) {
 			ArrayList<CsdlPropertyRef> properties = new ArrayList<>();
 			for(Field field : entity.getDeclaredFields()) {
@@ -168,7 +170,7 @@ public class ODataEntityHelper {
 			return properties;
 		}
 		else {
-			throw new ODataException("Object isn't annotated with @ODataEntity ");
+			throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 
@@ -190,7 +192,7 @@ public class ODataEntityHelper {
 		return property;
 	}
 	
-	public Entity buildEntity(Object entity) throws ODataException {
+	public Entity buildEntity(Object entity) throws ODataApplicationException {
 		Class<?> entityClass = entity.getClass();
 		if(entityClass.isAnnotationPresent(ODataEntity.class)) {
 			ODataEntity entityAnnotation = (ODataEntity) entity.getClass().getAnnotation(ODataEntity.class);
@@ -205,7 +207,7 @@ public class ODataEntityHelper {
 						   uniqueKeyUri.append("(").append(mappedFieldName).append("=").append(String.valueOf(field.get(entity))).append(")");
 					   }
 					   catch(Exception e) {
-						   throw new ODataException("Failed to create unique uri for ID "+e.getMessage());
+						   throw new ODataApplicationException("Failed to create an unique URI for ID of entity "+entity.getClass().getName(),HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 					   }
 					   
 				   }
@@ -217,16 +219,16 @@ public class ODataEntityHelper {
 				builtEntity.setId(new URI(uniqueKeyUri.toString()));
 			}
 			catch(Exception e) {
-				throw new ODataException("Object has unvalid URI ID");
+				throw new ODataApplicationException("Object "+entity.getClass().getName()+" has unvalid ID uri ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 			}
 			return builtEntity;
 		}
 		else {
-			throw new ODataException("Object isn't annotated with @ODataEntity ");
+			throw new ODataApplicationException("Object is not annotated with @ODataEntity",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
-	private Property buildProperty(Object obj, Field f, ODataField annotation) throws ODataException {
+	private Property buildProperty(Object obj, Field f, ODataField annotation) throws ODataApplicationException {
 		try {
 			Property p = new Property();
 			p.setName(annotation.name().isEmpty() ? f.getName() : annotation.name());
@@ -239,7 +241,7 @@ public class ODataEntityHelper {
 			return p;
 		}
 		catch(IllegalAccessException iae) {
-			throw new ODataException("Illegal access of field "+f.getName()+" --> "+iae.toString());
+			throw new ODataApplicationException("Illegal access of field "+f.getName()+" --> "+iae.toString(),HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 		}
 	}
 	
