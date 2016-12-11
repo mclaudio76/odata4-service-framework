@@ -52,6 +52,7 @@ public class ProductStoreService  {
 				
 				categories.add(c1);
 				categories.add(c2);
+				
 			}	
 		}
 	} 
@@ -70,10 +71,12 @@ public class ProductStoreService  {
 		
 		List<Product>  actual = new ArrayList<>(products);
 		
-		ODataParameter skip = ODataParameter.getSkipOption(params);
-		ODataParameter top  = ODataParameter.getTopOption(params);
-		
-		
+		ODataParameter skip 		  = ODataParameter.getSkipOption(params);
+		ODataParameter top  		  = ODataParameter.getTopOption(params);
+		List<ODataParameter> ordering = ODataParameter.getOrderBy(params);
+		for(ODataParameter item : ordering) {
+			System.out.println("Ordering by ["+item.getOrderByProperty()+"] "+(item.isDescending() ? "DESC":"ASC"));
+		}
 		if(skip != null) {
 			if(skip.getTopValue() < actual.size()) {
 				actual = actual.subList(skip.getSkipValue(), actual.size());

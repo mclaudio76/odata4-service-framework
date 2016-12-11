@@ -48,6 +48,8 @@ import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.apache.olingo.server.api.uri.queryoption.CountOption;
 import org.apache.olingo.server.api.uri.queryoption.ExpandItem;
 import org.apache.olingo.server.api.uri.queryoption.ExpandOption;
+import org.apache.olingo.server.api.uri.queryoption.OrderByItem;
+import org.apache.olingo.server.api.uri.queryoption.OrderByOption;
 import org.apache.olingo.server.api.uri.queryoption.SelectOption;
 import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
@@ -120,20 +122,18 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		 Collection currentReadCollection	 	 = null;
 		 
 		 CountOption countOption 				 = uriInfo.getCountOption();
-		 
 		 // These system query options may affect how collections of entities are returned from business methods.
 		 TopOption 	 topOption 					 = uriInfo.getTopOption();
 		 SkipOption	 skipOption					 = uriInfo.getSkipOption();
 		 SelectOption selectOption 				 = uriInfo.getSelectOption();
-		 
-		 // Expand system
+		 OrderByOption orderingOption			 = uriInfo.getOrderByOption();
+		 // Expand entities
 		 ExpandOption expandOption 				 = uriInfo.getExpandOption();
-		 
 		 
 		 int lastIndex						 = resourcePaths.size()-1;
 		 for(int uriIndex = 0; uriIndex < resourcePaths.size(); uriIndex++) {
+			 UriResource currentResourcePart = resourcePaths.get(uriIndex);
 			//System.out.println("Processing part "+uriIndex+" of "+lastIndex);
-			UriResource currentResourcePart = resourcePaths.get(uriIndex);
 			// If the resourcePart is an UriResourceEntitySet, we are working on a EntitySet or an Entity directly,
 			// i.e we are not navigating across entities (Products(1)->Category->Products()
 			if(currentResourcePart instanceof UriResourceEntitySet) {
@@ -143,7 +143,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   Object businessService      		 = instantiateDataService(edmEntityType);
 			   Class  workEntityClass      		 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
 			   List<ODataParameter> keys  		 = getKeyPredicates(uriInfo);
-			   addSystemQueryOptions(keys,countOption, topOption, skipOption);
+			   addSystemQueryOptions(keys,countOption, topOption, skipOption, orderingOption);
 			   // Is it a collection....
 			   if(uriEntitySet.isCollection()) {
 				  EntityCollection entitySet = new EntityCollection();
@@ -192,7 +192,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				EdmEntityType edmEntityType 		 = uriEntityNavigation.getProperty().getType();
 				Object businessService      		 = instantiateDataService(edmEntityType);
 				List<ODataParameter> params  		 = getParametersForNavigation(uriEntityNavigation);
-				addSystemQueryOptions(params,countOption, topOption, skipOption);
+				addSystemQueryOptions(params,countOption, topOption, skipOption,orderingOption);
 				
 				// We are navigating from an entity to a collection (relation: one to many).
 				// In our example is http://localhost:8080/DataService/ProductStore/Categories(1)/Products.
@@ -341,7 +341,18 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	private void addSystemQueryOptions(List<ODataParameter> lst, SystemQueryOption ...options) {
 		for(SystemQueryOption opt : options) {
 			if(opt != null) {
-				lst.add(new ODataParameter(opt));
+				if(opt instanceof OrderByOption) {
+					OrderByOption option = (OrderByOption) opt;
+					for(OrderByItem item : option.getOrders()) {
+						ODataParameter param = new ODataParameter(item);
+						if(param.isValid()) {
+							lst.add(param);
+						}
+					}
+				}
+				else {
+					lst.add(new ODataParameter(opt));
+				}
 			}
 		}
 	}

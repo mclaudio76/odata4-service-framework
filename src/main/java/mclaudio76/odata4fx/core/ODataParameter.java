@@ -4,10 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.olingo.commons.api.data.Property;
+import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.server.api.uri.UriParameter;
+import org.apache.olingo.server.api.uri.UriResource;
+import org.apache.olingo.server.api.uri.UriResourcePrimitiveProperty;
+import org.apache.olingo.server.api.uri.queryoption.OrderByItem;
 import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
+import org.apache.olingo.server.api.uri.queryoption.expression.Member;
 
 public class ODataParameter {
 	public Object value;
@@ -18,6 +23,13 @@ public class ODataParameter {
 	private int 	topValue			= 0;
 	private boolean isSkip				= false;
 	private int     skipValue			= 0;
+	
+	
+	private boolean isOrderBy			= false;
+	private String  orderByProperty		= "";
+	private boolean valid				= true;
+	private boolean descending			= false;
+	
 	
 	public ODataParameter(UriParameter param) {
 		this.propertyName  = param.getName();
@@ -42,6 +54,26 @@ public class ODataParameter {
 			isSkip		    = true;
 			SkipOption skip = (SkipOption) option;
 			skipValue	    =  skip.getValue();
+		}
+	}
+	
+	public ODataParameter(OrderByItem ordering) {
+		isOrderBy 			= true;
+		valid	  			= false;
+		isSystemQueryOption = true;
+		if (ordering.getExpression() instanceof Member) {
+			Member mbr = (Member) ordering.getExpression();
+			
+			UriResource resource = mbr.getResourcePath().getUriResourceParts().get(0);
+			if(resource instanceof  UriResourcePrimitiveProperty) {
+				UriResourcePrimitiveProperty property = (UriResourcePrimitiveProperty)resource;
+				EdmProperty prop 	 = property.getProperty();
+				String value		 = property.getSegmentValue();
+				this.orderByProperty = prop.getName();
+				this.valid 			 = true;
+				this.descending		 = ordering.isDescending();
+				
+			}
 		}
 	}
 	
@@ -73,7 +105,15 @@ public class ODataParameter {
 		return null;
 	}
 
-	
+	public static List<ODataParameter> getOrderBy(List<ODataParameter> lst) {
+		ArrayList<ODataParameter> pms = new ArrayList<>();
+		for(ODataParameter param : lst) {
+			if(param.isOrderBy) {
+				pms.add(param);
+			}
+		}
+		return pms;
+	}
 
 	public boolean isSystemQueryOption() {
 		return isSystemQueryOption;
@@ -114,6 +154,31 @@ public class ODataParameter {
 	public void setSkipValue(int skipValue) {
 		this.skipValue = skipValue;
 	}
+
+	public boolean isValid() {
+		return valid;
+	}
+
+	public String getPropertyName() {
+		return propertyName;
+	}
+
+	public void setPropertyName(String propertyName) {
+		this.propertyName = propertyName;
+	}
+
+	public boolean isOrderBy() {
+		return isOrderBy;
+	}
+	
+	public String getOrderByProperty() {
+		return orderByProperty;
+	}
+
+	public boolean isDescending() {
+		return descending;
+	}
+
 	
 	
 	
