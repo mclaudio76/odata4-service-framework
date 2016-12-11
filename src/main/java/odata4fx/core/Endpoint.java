@@ -64,6 +64,10 @@ public class Endpoint extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		process(request,response);
 	}
+	
+	protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		process(request,response);
+	}
 
 	/**
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
