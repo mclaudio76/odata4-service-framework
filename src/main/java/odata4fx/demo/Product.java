@@ -1,11 +1,11 @@
-package mclaudio76.odata4fx.demo;
+package odata4fx.demo;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 
-import mclaudio76.odata4fx.core.annotations.ODataEntity;
-import mclaudio76.odata4fx.core.annotations.ODataField;
-import mclaudio76.odata4fx.core.annotations.ODataNavigationProperty;
+import odata4fx.core.annotations.ODataEntity;
+import odata4fx.core.annotations.ODataField;
+import odata4fx.core.annotations.ODataNavigationProperty;
 
 	
 

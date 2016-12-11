@@ -1,4 +1,4 @@
-package mclaudio76.odata4fx.core;
+package odata4fx.core;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -19,10 +19,10 @@ import org.apache.olingo.commons.api.ex.ODataException;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
 
-import mclaudio76.odata4fx.core.annotations.ODataController;
-import mclaudio76.odata4fx.core.annotations.ODataEntity;
-import mclaudio76.odata4fx.core.annotations.ODataField;
-import mclaudio76.odata4fx.core.annotations.ODataNavigationProperty;
+import odata4fx.core.annotations.ODataController;
+import odata4fx.core.annotations.ODataEntity;
+import odata4fx.core.annotations.ODataField;
+import odata4fx.core.annotations.ODataNavigationProperty;
 	
 public class ODataEntityHelper {
 	

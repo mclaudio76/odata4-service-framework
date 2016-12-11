@@ -1,19 +1,19 @@
-package mclaudio76.odata4fx.demo;
+package odata4fx.demo;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import mclaudio76.odata4fx.core.ODataEntityHelper;
-import mclaudio76.odata4fx.core.ODataParameter;
-import mclaudio76.odata4fx.core.annotations.ODataController;
-import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
-import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
-import mclaudio76.odata4fx.core.annotations.ODataNavigation;
-import mclaudio76.odata4fx.core.annotations.ODataReadEntity;
-import mclaudio76.odata4fx.core.annotations.ODataReadEntityCollection;
-import mclaudio76.odata4fx.core.annotations.ODataUpdateEntity;
+import odata4fx.core.ODataEntityHelper;
+import odata4fx.core.ODataParameter;
+import odata4fx.core.annotations.ODataController;
+import odata4fx.core.annotations.ODataCreateEntity;
+import odata4fx.core.annotations.ODataDeleteEntity;
+import odata4fx.core.annotations.ODataNavigation;
+import odata4fx.core.annotations.ODataReadEntity;
+import odata4fx.core.annotations.ODataReadEntityCollection;
+import odata4fx.core.annotations.ODataUpdateEntity;
 
 @ODataController
 public class ProductStoreService  {

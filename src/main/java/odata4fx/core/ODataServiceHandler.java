@@ -1,4 +1,4 @@
-package mclaudio76.odata4fx.core;
+package odata4fx.core;
 
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -52,12 +52,12 @@ import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
 
-import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
-import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
-import mclaudio76.odata4fx.core.annotations.ODataNavigation;
-import mclaudio76.odata4fx.core.annotations.ODataReadEntity;
-import mclaudio76.odata4fx.core.annotations.ODataReadEntityCollection;
-import mclaudio76.odata4fx.core.annotations.ODataUpdateEntity;
+import odata4fx.core.annotations.ODataCreateEntity;
+import odata4fx.core.annotations.ODataDeleteEntity;
+import odata4fx.core.annotations.ODataNavigation;
+import odata4fx.core.annotations.ODataReadEntity;
+import odata4fx.core.annotations.ODataReadEntityCollection;
+import odata4fx.core.annotations.ODataUpdateEntity;
 
 /****
  * 

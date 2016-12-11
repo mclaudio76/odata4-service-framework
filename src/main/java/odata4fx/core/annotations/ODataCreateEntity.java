@@ -1,4 +1,4 @@
-package mclaudio76.odata4fx.core.annotations;
+package odata4fx.core.annotations;
 
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;

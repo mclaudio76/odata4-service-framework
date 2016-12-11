@@ -1,11 +1,11 @@
-package mclaudio76.odata4fx.demo;
+package odata4fx.demo;
 
 
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import mclaudio76.odata4fx.core.Endpoint;
+import odata4fx.core.Endpoint;
 
 @Configuration
 public class ApplicationConfiguration {
