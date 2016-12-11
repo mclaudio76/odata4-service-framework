@@ -29,8 +29,8 @@ public class ProductStoreService  {
 			if(!inited) {
 				inited = true;
 				
-				Category c1 = new Category(1, "Expensive cars");
-				Category c2 = new Category(2, "Great cars");
+				Category c1 = new Category(1, "Expensive cars","EXPENSIVE");
+				Category c2 = new Category(2, "Great cars","GREAT");
 				
 				Product p1 = new Product(1, "Alfa  A1", "Racing car", c1);
 				Product p2 = new Product(2, "Beta  B1", "Luxury car", c2);

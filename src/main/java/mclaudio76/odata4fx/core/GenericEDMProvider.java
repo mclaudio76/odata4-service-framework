@@ -186,5 +186,14 @@ public class GenericEDMProvider extends CsdlAbstractEdmProvider {
 		}
 		return null;
 	}
+	
+	public Class findActualClass(String entityName) {
+		for(ExposedEntity entity : exposedEntities) {
+			if(entity.handledEntityName.equals(entityName)) {
+				return entity.entityClass;
+			}
+		}
+		return null;
+	}
 
 }

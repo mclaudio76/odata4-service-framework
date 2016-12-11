@@ -11,10 +11,14 @@ import java.util.Locale;
 import org.apache.olingo.commons.api.data.ContextURL;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
+import org.apache.olingo.commons.api.data.Link;
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.edm.EdmBindingTarget;
+import org.apache.olingo.commons.api.edm.EdmElement;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
+import org.apache.olingo.commons.api.edm.EdmNavigationPropertyBinding;
 import org.apache.olingo.commons.api.ex.ODataException;
 import org.apache.olingo.commons.api.format.ContentType;
 import org.apache.olingo.commons.api.http.HttpHeader;
@@ -42,10 +46,13 @@ import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.apache.olingo.server.api.uri.queryoption.CountOption;
+import org.apache.olingo.server.api.uri.queryoption.ExpandItem;
+import org.apache.olingo.server.api.uri.queryoption.ExpandOption;
 import org.apache.olingo.server.api.uri.queryoption.SelectOption;
 import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
+import org.apache.olingo.server.api.uri.queryoption.apply.Expand;
 
 import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
 import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
@@ -104,7 +111,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	 * 
 	 */
 	
-	private void processReadRequest(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException {
+	private void processReadRequest(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) throws ODataApplicationException, ODataException {
 		 List<UriResource> resourcePaths 	 = uriInfo.getUriResourceParts();
 		 
 		 Object currentWorkingEntity		 	 = null;
@@ -119,10 +126,13 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		 SkipOption	 skipOption					 = uriInfo.getSkipOption();
 		 SelectOption selectOption 				 = uriInfo.getSelectOption();
 		 
+		 // Expand system
+		 ExpandOption expandOption 				 = uriInfo.getExpandOption();
+		 
 		 
 		 int lastIndex						 = resourcePaths.size()-1;
 		 for(int uriIndex = 0; uriIndex < resourcePaths.size(); uriIndex++) {
-			System.out.println("Processing part "+uriIndex+" of "+lastIndex);
+			//System.out.println("Processing part "+uriIndex+" of "+lastIndex);
 			UriResource currentResourcePart = resourcePaths.get(uriIndex);
 			// If the resourcePart is an UriResourceEntitySet, we are working on a EntitySet or an Entity directly,
 			// i.e we are not navigating across entities (Products(1)->Category->Products()
@@ -130,7 +140,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   UriResourceEntitySet uriEntitySet = (UriResourceEntitySet) currentResourcePart;
 			   EdmEntitySet edmEntitySet   		 = uriEntitySet.getEntitySet();
 			   EdmEntityType edmEntityType 		 = edmEntitySet.getEntityType();
-			   Object businessService      		 = instatiateDataService(edmEntityType);
+			   Object businessService      		 = instantiateDataService(edmEntityType);
 			   Class  workEntityClass      		 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
 			   List<ODataParameter> keys  		 = getKeyPredicates(uriInfo);
 			   addSystemQueryOptions(keys,countOption, topOption, skipOption);
@@ -144,12 +154,17 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					  // If we reached the last segment, we send to the client the read collection serialized.
 					  if(uriIndex == lastIndex) {
 						  for(Object localEntity : currentReadCollection) {
-							  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
+							  Entity currentEntity = oDataHelper.buildEntity(localEntity);
+							  if(expandOption != null) {
+								  applyExpansion(currentEdmEntitySet, currentEntity,localEntity, expandOption);
+							  }
+							  entitySet.getEntities().add(currentEntity);
+							  
 						  }
 						  if(countOption != null && countOption.getValue()) {
 							  entitySet.setCount(currentReadCollection.size());
 						  }
-						  serializeCollection(request, response, responseFormat, edmEntitySet, entitySet, countOption, selectOption);
+						  serializeCollection(request, response, responseFormat, edmEntitySet, entitySet, countOption, selectOption,expandOption);
 						  return;
 					  }
 				  }
@@ -164,14 +179,18 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   	  currentWorkingEntity =  invokeMethod(businessService, workEntityClass, ODataReadEntity.class,keys);
    			      // If we reached the last segment, we send to the client the serialized entity.
 				  if(uriIndex == lastIndex) {
-					  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity,selectOption);
+					  Entity actualODataEntity  = oDataHelper.buildEntity(currentWorkingEntity);
+					  if(expandOption != null) {
+						  applyExpansion(currentEdmEntitySet, actualODataEntity,currentWorkingEntity, expandOption);
+					  }
+					  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption);
 				  }
 			   }
 			}
 			if(currentResourcePart instanceof UriResourceNavigation) {
 				UriResourceNavigation uriEntityNavigation = (UriResourceNavigation) currentResourcePart;
 				EdmEntityType edmEntityType 		 = uriEntityNavigation.getProperty().getType();
-				Object businessService      		 = instatiateDataService(edmEntityType);
+				Object businessService      		 = instantiateDataService(edmEntityType);
 				List<ODataParameter> params  		 = getParametersForNavigation(uriEntityNavigation);
 				addSystemQueryOptions(params,countOption, topOption, skipOption);
 				
@@ -191,13 +210,21 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					if(uriIndex == lastIndex) {
 						if(currentReadCollection.size() == 1) {
 							currentWorkingEntity = currentReadCollection.iterator().next();
-							serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity,selectOption);
+							Entity actualODataEntity  = oDataHelper.buildEntity(currentWorkingEntity);
+							if(expandOption != null) {
+							    applyExpansion(currentEdmEntitySet, actualODataEntity,currentWorkingEntity, expandOption);
+							}
+							serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption);
 						}
 						else {
 							EntityCollection entityCollection = new EntityCollection();
 							for(Object localEntity : currentReadCollection) {
 								try {
-									entityCollection.getEntities().add(oDataHelper.buildEntity(localEntity));
+									 Entity currentEntity = oDataHelper.buildEntity(localEntity);
+									  if(expandOption != null) {
+										  applyExpansion(currentEdmEntitySet, currentEntity,localEntity, expandOption);
+									  }
+									  entityCollection.getEntities().add(currentEntity);
 								}
 								catch(ODataException oe) {
 									createException(oe.getMessage(), HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -206,7 +233,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 							if(countOption != null && countOption.getValue()) {
 								entityCollection.setCount(currentReadCollection.size());
 							}
-							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection, countOption,selectOption);
+							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection, countOption,selectOption,expandOption);
 						}
 					}
 				}
@@ -235,7 +262,11 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					currentEdmEntitySet					 =  edmEntitySet;
 					currentEdmEntityType				 =  edmEntityType;
 					 if(uriIndex == lastIndex) {
-					    serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, currentWorkingEntity,selectOption);
+						Entity actualODataEntity  = oDataHelper.buildEntity(currentWorkingEntity);
+						if(expandOption != null) {
+						    applyExpansion(currentEdmEntitySet, actualODataEntity,currentWorkingEntity, expandOption);
+						}
+					    serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption);
 					 }
 				}
 			}
@@ -244,7 +275,69 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		 
 	}
 	
-
+	/***
+	 * This method takes care to included expanded property
+	 * as items.
+	 * We suppport only a direct expansion (master -> detail), not other patterns
+	 * @param currentEntity
+	 * @param expandOption
+	 */
+	private void applyExpansion(EdmEntitySet entitySet, Entity entity, Object javaEntity, ExpandOption expandOption) throws ODataApplicationException {
+		List<EdmNavigationPropertyBinding> bindings = entitySet.getNavigationPropertyBindings();
+		List<Class> expandClassList 				= new ArrayList<>();
+		Object businessService      		 		= instantiateDataService(entitySet.getEntityType());
+		boolean starExpansion						= false;
+		Class   sourceEntityClass					= edmProvider.findActualClass(entitySet.getEntityType().getFullQualifiedName());
+		ArrayList<ODataParameter> params			= new ArrayList<>();
+		/***
+		 * I analyze which properties are required as expanded items. I assume that if a '*' expression
+		 * is used, any expandable property is required, so i clear the list of expanded properties classes.
+		 * Otherwise, at the end of the first 'for' loop I have a list of required expandable properties.
+		 * By the way, Olingo fx ensures that only existing properties may be specified.I check if a specified
+		 * property exists nevertless.
+		 * 
+		 */
+		for(ExpandItem expandedItem : expandOption.getExpandItems()) {
+			try {
+				if(expandedItem.isStar()) {
+					starExpansion = true;
+					expandClassList.clear();
+					break;
+				}
+				List<UriResource> resources = expandedItem.getResourcePath().getUriResourceParts();
+				for(UriResource resource : resources) {
+					String className = resource.getSegmentValue();
+					Class actualClass = edmProvider.findActualClass(className);
+					if(actualClass != null && !expandClassList.contains(actualClass)) {
+						expandClassList.add(actualClass);
+					}
+				}
+			}
+			catch(Exception e) {
+				
+			}
+		}
+		
+		for(EdmNavigationPropertyBinding navProperty : bindings) {
+			EdmElement property = entitySet.getEntityType().getProperty(navProperty.getPath());
+			String navPropName = property.getName();
+			Class navPropertyClass = edmProvider.findActualClass(navPropName);
+			try {
+				if(expandClassList.contains(navPropertyClass)) {
+					Object result						 =  invokeNavigationMethod(businessService, sourceEntityClass, navPropertyClass, ODataNavigation.class, javaEntity, params);
+					Link link = new Link();
+					link.setTitle(navPropName);
+					link.setInlineEntity(oDataHelper.buildEntity(result));
+					entity.getNavigationLinks().add(link);
+				}
+			}
+			catch(Exception e) {
+				
+			}
+		}
+	}
+		
+	
 	private void addSystemQueryOptions(List<ODataParameter> lst, SystemQueryOption ...options) {
 		for(SystemQueryOption opt : options) {
 			if(opt != null) {
@@ -258,7 +351,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		EdmEntitySet edmEntitySet       = getEdmEntitySet(uriInfo);
 		EdmEntityType edmEntityType     = edmEntitySet.getEntityType();
 		Class  workEntityClass     		= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-		Object businessService 			= instatiateDataService(edmEntitySet.getEntityType());
+		Object businessService 			= instantiateDataService(edmEntitySet.getEntityType());
 		InputStream requestInputStream  = request.getBody();
 		ODataDeserializer deserializer  = initODataItem.createDeserializer(requestFormat);
 		DeserializerResult result 	    = deserializer.entity(requestInputStream, edmEntityType);
@@ -269,7 +362,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		}
 		try {
 		  Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes);
-		  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, newCreatedEntity);
+		  Entity actualODataEntity  = oDataHelper.buildEntity(newCreatedEntity);
+		  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity);
 		}
 		catch(Exception e) {
 		  sendError(response, responseFormat);
@@ -281,7 +375,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
   	   List<ODataParameter> keys	     = getKeyPredicates(uriInfo);
   	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
-	   Object businessService 		 = instatiateDataService(edmEntitySet.getEntityType());
+	   Object businessService 		 = instantiateDataService(edmEntitySet.getEntityType());
 	   Class  workEntityClass     	 = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
 	   try {
 			invokeMethod(businessService, workEntityClass, ODataDeleteEntity.class,keys);
@@ -302,7 +396,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	  EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
 	  EdmEntityType edmEntityType   = edmEntitySet.getEntityType();
 	  Class  workEntityClass    	= edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
-	  Object businessService 	    = instatiateDataService(edmEntitySet.getEntityType());
+	  Object businessService 	    = instantiateDataService(edmEntitySet.getEntityType());
 	  // 2.1. retrieve the payload from the POST request for the entity to create and deserialize it
 	  InputStream requestInputStream = request.getBody();
 	  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
@@ -314,7 +408,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	  }
 	  try {
 		  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
-		  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, target);
+		  Entity actualODataEntity  = oDataHelper.buildEntity(target);
+		  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity);
 	  }
 	  catch(Exception e) {
     	 sendError(response, responseFormat);
@@ -324,9 +419,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	/// Helper methods
 	
-	private void serializeEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, Object object, SystemQueryOption ... systemQueryOptions) throws ODataApplicationException {
+	private void serializeEntity(ODataResponse response, ContentType responseFormat, EdmEntitySet edmEntitySet,  EdmEntityType edmEntityType, Entity entity, SystemQueryOption ... systemQueryOptions) throws ODataApplicationException {
 		try {
-		  Entity actualODataEntity  = oDataHelper.buildEntity(object);
+		   //Entity actualODataEntity  = oDataHelper.buildEntity(object);
 		  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
 		  //EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
 		  EntitySerializerOptions.Builder builder = EntitySerializerOptions.with().contextURL(contextUrl);
@@ -335,10 +430,13 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				   if (option instanceof SelectOption) {
 					  builder = builder.select((SelectOption) option);
 				  }
+				   if (option instanceof ExpandOption) {
+						  builder = builder.expand((ExpandOption) option);
+				   }
 			  }
 		  }
 		  ODataSerializer serializer = initODataItem.createSerializer(responseFormat);
-		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, actualODataEntity, builder.build());
+		  SerializerResult serializedResponse = serializer.entity(initServiceMetaData, edmEntityType, entity, builder.build());
 		  response.setContent(serializedResponse.getContent());
 		  response.setStatusCode(HttpStatusCode.CREATED.getStatusCode());
 		  response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
@@ -352,7 +450,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	}
 
 	
-	private Object instatiateDataService(EdmEntityType entityType) throws ODataApplicationException {
+	private Object instantiateDataService(EdmEntityType entityType) throws ODataApplicationException {
 		try {
 			Class clz = edmProvider.findActualClass(entityType.getFullQualifiedName());
 			return oDataHelper.getController(clz);
@@ -431,6 +529,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					  }
 					  if (option instanceof SelectOption) {
 						  builder = builder.select((SelectOption) option);
+					  }
+					  if (option instanceof ExpandOption) {
+						  builder = builder.expand((ExpandOption) option);
 					  }
 				  }
 			  }

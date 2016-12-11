@@ -19,16 +19,20 @@ public class Category {
 	@ODataField(ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.String)
 	public String  categoryDescription;
 	
+	@ODataField(ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.String)
+	public String  shortName;
+	
 	@ODataNavigationProperty(entityType=Product.class, name="Products", path="Products", target="Products", nullable=false, partner="Category")
 	public List<Product> products = new ArrayList<Product>();
 
 	public Category() {
-		this(0,"");
+		this(0,"","");
 	}
 	
-	public Category(Integer id,  String description) {
+	public Category(Integer id,  String description,String shortName) {
 		this.categoryID = id;
 		this.categoryDescription  = description;
+		this.shortName            = shortName;
 	}
 
 	@Override
