@@ -1,10 +1,12 @@
 package mclaudio76.odata4fx.demo;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import mclaudio76.odata4fx.core.ODataEntityHelper;
-import mclaudio76.odata4fx.core.ODataParamValue;
+import mclaudio76.odata4fx.core.ODataParameter;
 import mclaudio76.odata4fx.core.annotations.ODataController;
 import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
 import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
@@ -16,7 +18,7 @@ import mclaudio76.odata4fx.core.annotations.ODataUpdateEntity;
 @ODataController
 public class ProductStoreService  {
 	
-	private static ArrayList<Product> products 		= new ArrayList<>();
+	private static ArrayList<Product> products 		= new ArrayList<>();	
 	private static ArrayList<Category> categories   = new ArrayList<>();	
 	private static Boolean inited					= false;
 	
@@ -56,14 +58,47 @@ public class ProductStoreService  {
 	
 	
 	@ODataReadEntityCollection(Product.class)
-	public List<Product> listAllProducts(List<ODataParamValue> params) {
-		return products;
+	public List<Product> listAllProducts(List<ODataParameter> params) {
+		
+		Collections.sort(products, new Comparator<Product>() {
+
+			@Override
+			public int compare(Product o1, Product o2) {
+				return o1.ID.compareTo(o2.ID);
+			}
+		});
+		
+		List<Product>  actual = new ArrayList<>(products);
+		
+		ODataParameter skip = ODataParameter.getSkipOption(params);
+		ODataParameter top  = ODataParameter.getTopOption(params);
+		
+		
+		if(skip != null) {
+			if(skip.getTopValue() < actual.size()) {
+				actual = actual.subList(skip.getSkipValue(), actual.size());
+			}
+			else {
+				actual = new ArrayList<>();
+			}
+		}
+		
+		if (top != null) {
+			if(top.getTopValue() < actual.size()) {
+				actual = actual.subList(0, top.getTopValue());
+			}
+			else {
+				actual = new ArrayList<>();
+			}
+		}
+		
+		return actual;
 	}
 	
 	
 
 	@ODataReadEntity(Product.class)
-	public Product findProductByKey(List<ODataParamValue>  keys) {
+	public Product findProductByKey(List<ODataParameter>  keys) {
 		for(Product p : products) {
 			if(helper.entityMatchesKeys(p, keys)) {
 				return p;
@@ -73,7 +108,7 @@ public class ProductStoreService  {
 	}
 
 	@ODataCreateEntity(Product.class)
-	public Product createProduct(List<ODataParamValue> values) {
+	public Product createProduct(List<ODataParameter> values) {
 		Product product = new Product();
 		helper.setFieldsValueFromEntity(product, values);
 		products.add(product);
@@ -81,7 +116,7 @@ public class ProductStoreService  {
 	}
 
 	@ODataDeleteEntity(Product.class)
-	public void deleteProduct(List<ODataParamValue> keys) {
+	public void deleteProduct(List<ODataParameter> keys) {
 		Product p = findProductByKey(keys);
 		if(p != null) {
 			products.remove(p);
@@ -89,19 +124,19 @@ public class ProductStoreService  {
 	}
 
 	@ODataUpdateEntity(Product.class)
-	public Product updateProduct(List<ODataParamValue> keys) {
+	public Product updateProduct(List<ODataParameter> keys) {
 		return null;
 	}
 
 	// Navigation, from product to categories
 	
 	@ODataNavigation(fromEntity=Product.class, toEntity=Category.class)
-	public Category getAssociatedCategory(Product item, List<ODataParamValue> params) {
+	public Category getAssociatedCategory(Product item, List<ODataParameter> params) {
 		return item.category;
 	}
 	
 	@ODataNavigation(fromEntity=Category.class, toEntity=Product.class)
-	public List<Product> getAssociatedProducts(Category item, List<ODataParamValue> params) {
+	public List<Product> getAssociatedProducts(Category item, List<ODataParameter> params) {
 		List<Product> result = new ArrayList<Product>();
 		for(Product p : item.products) {
 			if(helper.entityMatchesKeys(p, params)) {
@@ -116,13 +151,13 @@ public class ProductStoreService  {
 	 * Categories
 	 */
 	@ODataReadEntityCollection(Category.class)
-	public List<Category> listAllCategories(List<ODataParamValue> keys) {
+	public List<Category> listAllCategories(List<ODataParameter> keys) {
 		return categories;
 	}
 
 	
 	@ODataReadEntity(Category.class)
-	public Category findCategoryByKey(List<ODataParamValue> keys) {
+	public Category findCategoryByKey(List<ODataParameter> keys) {
 		for(Category p : categories) {
 			if(helper.entityMatchesKeys(p, keys)) {
 				return p;
@@ -132,7 +167,7 @@ public class ProductStoreService  {
 	}
 
 	@ODataCreateEntity(Category.class)
-	public Category createCategory(List<ODataParamValue> values) {
+	public Category createCategory(List<ODataParameter> values) {
 		Category category = new Category();
 		helper.setFieldsValueFromEntity(category, values);
 		categories.add(category);
@@ -140,7 +175,7 @@ public class ProductStoreService  {
 	}
 
 	@ODataDeleteEntity(Category.class)
-	public void deleteCategory(List<ODataParamValue>  keys) {
+	public void deleteCategory(List<ODataParameter>  keys) {
 		Category p = findCategoryByKey(keys);
 		if(p != null) {
 			categories.remove(p);
@@ -148,7 +183,7 @@ public class ProductStoreService  {
 	}
 
 	@ODataUpdateEntity(Product.class)
-	public Category updateCategory(List<ODataParamValue> values) {
+	public Category updateCategory(List<ODataParameter> values) {
 		return null;
 	}
 	

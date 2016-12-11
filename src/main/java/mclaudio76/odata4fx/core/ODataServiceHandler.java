@@ -41,7 +41,10 @@ import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
-import org.springframework.http.HttpStatus;
+import org.apache.olingo.server.api.uri.queryoption.CountOption;
+import org.apache.olingo.server.api.uri.queryoption.SkipOption;
+import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
+import org.apache.olingo.server.api.uri.queryoption.TopOption;
 
 import mclaudio76.odata4fx.core.annotations.ODataCreateEntity;
 import mclaudio76.odata4fx.core.annotations.ODataDeleteEntity;
@@ -108,6 +111,13 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		 EdmEntitySet   currentEdmEntitySet		 = null;
 		 Collection currentReadCollection	 	 = null;
 		 
+		 CountOption countOption 				 = uriInfo.getCountOption();
+		 
+		 // These system query options may affect queries..
+		 TopOption 	 topOption 					 = uriInfo.getTopOption();
+		 SkipOption	 skipOption					 = uriInfo.getSkipOption();
+		 
+		 
 		 int lastIndex						 = resourcePaths.size()-1;
 		 for(int uriIndex = 0; uriIndex < resourcePaths.size(); uriIndex++) {
 			System.out.println("Processing part "+uriIndex+" of "+lastIndex);
@@ -120,7 +130,8 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   EdmEntityType edmEntityType 		 = edmEntitySet.getEntityType();
 			   Object businessService      		 = instatiateDataService(edmEntityType);
 			   Class  workEntityClass      		 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
-			   List<ODataParamValue> keys  		 = getKeyPredicates(uriInfo);
+			   List<ODataParameter> keys  		 = getKeyPredicates(uriInfo);
+			   addSystemQueryOptions(keys,countOption, topOption, skipOption);
 			   // Is it a collection....
 			   if(uriEntitySet.isCollection()) {
 				  EntityCollection entitySet = new EntityCollection();
@@ -133,7 +144,10 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 						  for(Object localEntity : currentReadCollection) {
 							  entitySet.getEntities().add(oDataHelper.buildEntity(localEntity));  
 						  }
-						  serializeCollection(request, response, responseFormat, edmEntitySet, entitySet);
+						  if(countOption != null && countOption.getValue()) {
+							  entitySet.setCount(currentReadCollection.size());
+						  }
+						  serializeCollection(request, response, responseFormat, edmEntitySet, entitySet, countOption);
 						  return;
 					  }
 				  }
@@ -156,7 +170,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				UriResourceNavigation uriEntityNavigation = (UriResourceNavigation) currentResourcePart;
 				EdmEntityType edmEntityType 		 = uriEntityNavigation.getProperty().getType();
 				Object businessService      		 = instatiateDataService(edmEntityType);
-				List<ODataParamValue> params  		 = getParametersForNavigation(uriEntityNavigation);
+				List<ODataParameter> params  		 = getParametersForNavigation(uriEntityNavigation);
+				addSystemQueryOptions(params,countOption, topOption, skipOption);
+				
 				// We are navigating from an entity to a collection (relation: one to many).
 				// In our example is http://localhost:8080/DataService/ProductStore/Categories(1)/Products.
 				// 
@@ -185,7 +201,10 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 									createException(oe.getMessage(), HttpStatusCode.INTERNAL_SERVER_ERROR);
 								}
 							}
-							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection);
+							if(countOption != null && countOption.getValue()) {
+								entityCollection.setCount(currentReadCollection.size());
+							}
+							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection, countOption);
 						}
 					}
 				}
@@ -224,6 +243,14 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	}
 	
 
+	private void addSystemQueryOptions(List<ODataParameter> lst, SystemQueryOption ...options) {
+		for(SystemQueryOption opt : options) {
+			if(opt != null) {
+				lst.add(new ODataParameter(opt));
+			}
+		}
+	}
+
 	@Override
 	public void createEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo,  ContentType requestFormat, ContentType responseFormat)  throws  ODataApplicationException, DeserializerException, SerializerException {
 		EdmEntitySet edmEntitySet       = getEdmEntitySet(uriInfo);
@@ -234,9 +261,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		ODataDeserializer deserializer  = initODataItem.createDeserializer(requestFormat);
 		DeserializerResult result 	    = deserializer.entity(requestInputStream, edmEntityType);
 		Entity requestEntity 		    = result.getEntity();
-		List<ODataParamValue> attributes = new ArrayList<>();
+		List<ODataParameter> attributes = new ArrayList<>();
 		for(Property prop : requestEntity.getProperties()) {
-		  attributes.add(new ODataParamValue(prop));
+		  attributes.add(new ODataParameter(prop));
 		}
 		try {
 		  Object newCreatedEntity   = invokeMethod(businessService, workEntityClass, ODataCreateEntity.class,attributes);
@@ -250,7 +277,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	@Override
 	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
-  	   List<ODataParamValue> keys	     = getKeyPredicates(uriInfo);
+  	   List<ODataParameter> keys	     = getKeyPredicates(uriInfo);
   	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
 	   Object businessService 		 = instatiateDataService(edmEntitySet.getEntityType());
 	   Class  workEntityClass     	 = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
@@ -279,9 +306,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
 	  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
 	  Entity requestEntity 			 = result.getEntity();
-	  List<ODataParamValue> attributes = new ArrayList<>();
+	  List<ODataParameter> attributes = new ArrayList<>();
 	  for(Property prop : requestEntity.getProperties()) {
-		  attributes.add(new ODataParamValue(prop));
+		  attributes.add(new ODataParameter(prop));
 	  }
 	  try {
 		  Object target	= invokeMethod(businessService, workEntityClass, ODataUpdateEntity.class,attributes);
@@ -343,25 +370,25 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	
 	
-	private List<ODataParamValue> getKeyPredicates(UriInfo uriInfo) {
+	private List<ODataParameter> getKeyPredicates(UriInfo uriInfo) {
 		UriResourceEntitySet uriResourceEntitySet 	= (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
 		return getKeyPredicates(uriResourceEntitySet);
 	}
 	
-	private List<ODataParamValue> getKeyPredicates(UriResourceEntitySet uriResourceEntitySet) {
+	private List<ODataParameter> getKeyPredicates(UriResourceEntitySet uriResourceEntitySet) {
 	    List<UriParameter> keyPredicates 			= uriResourceEntitySet.getKeyPredicates();
-	    List<ODataParamValue> keys = new ArrayList<>();
+	    List<ODataParameter> keys = new ArrayList<>();
 	    for(UriParameter uri : keyPredicates)  {
-	    	keys.add(new ODataParamValue(uri));
+	    	keys.add(new ODataParameter(uri));
 	    }
 	    return keys;
 	}
 	
-	private List<ODataParamValue> getParametersForNavigation(UriResourceNavigation uriNavigation) {
+	private List<ODataParameter> getParametersForNavigation(UriResourceNavigation uriNavigation) {
 		 List<UriParameter> keyPredicates 			= uriNavigation.getKeyPredicates();
-		 List<ODataParamValue> keys = new ArrayList<>();
+		 List<ODataParameter> keys = new ArrayList<>();
 		 for(UriParameter uri : keyPredicates)  {
-		   	keys.add(new ODataParamValue(uri));
+		   	keys.add(new ODataParameter(uri));
 		 }
 		 return keys;
 	}
@@ -379,13 +406,13 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	}
 
 	
-	private void serializeCollection(ODataRequest request, ODataResponse response, ContentType contentType, EdmEntitySet edmEntitySet, EntityCollection entitySet) throws ODataApplicationException {
+	private void serializeCollection(ODataRequest request, ODataResponse response, ContentType contentType, EdmEntitySet edmEntitySet, EntityCollection entitySet, CountOption count) throws ODataApplicationException {
 		  try {
 			  ODataSerializer serializer = initODataItem.createSerializer(contentType);
 			  EdmEntityType edmEntityType = edmEntitySet.getEntityType();
 			  ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
 			  final String id = request.getRawBaseUri() + "/" + edmEntitySet.getName();
-			  EntityCollectionSerializerOptions opts = EntityCollectionSerializerOptions.with().id(id).contextURL(contextUrl).build();
+			  EntityCollectionSerializerOptions opts = EntityCollectionSerializerOptions.with().id(id).contextURL(contextUrl).count(count).build();
 			  SerializerResult serializerResult = serializer.entityCollection(initServiceMetaData, edmEntityType, entitySet, opts);
 			  InputStream serializedContent = serializerResult.getContent();
 			  response.setContent(serializedContent);
@@ -399,7 +426,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	/// Reflection support for invoking methods.
 	/// Verifies if, given a certain annotation, a method with such annotation exists and accepts expected parameters
-	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, List<ODataParamValue> params) throws ODataApplicationException {
+	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, List<ODataParameter> params) throws ODataApplicationException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
@@ -477,7 +504,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	}
 	
 	
-	private Object invokeNavigationMethod(Object businessService, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, List<ODataParamValue> params) throws ODataApplicationException {
+	private Object invokeNavigationMethod(Object businessService, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, List<ODataParameter> params) throws ODataApplicationException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();

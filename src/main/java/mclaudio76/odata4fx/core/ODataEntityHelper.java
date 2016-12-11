@@ -245,8 +245,8 @@ public class ODataEntityHelper {
 	
 	
 	
-	public void setFieldsValueFromEntity(Object object, List<ODataParamValue> attributes) {
-		for(ODataParamValue paramValue : attributes) {
+	public void setFieldsValueFromEntity(Object object, List<ODataParameter> attributes) {
+		for(ODataParameter paramValue : attributes) {
 			try {
 				object.getClass().getDeclaredField(paramValue.propertyName).set(object, paramValue.value);
 			}
@@ -256,9 +256,9 @@ public class ODataEntityHelper {
 		}
 	}
 	
-	public boolean entityMatchesKeys(Object object, List<ODataParamValue>  attributes) {
+	public boolean entityMatchesKeys(Object object, List<ODataParameter>  attributes) {
 		boolean matches = true;
-		for(ODataParamValue paramValue : attributes) {
+		for(ODataParameter paramValue : attributes) {
 			try {
 				Object keyValue    = object.getClass().getDeclaredField(paramValue.propertyName).get(object);
 				Constructor<?> constr = keyValue.getClass().getConstructor(String.class);
