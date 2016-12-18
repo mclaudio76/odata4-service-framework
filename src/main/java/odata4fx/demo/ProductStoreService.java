@@ -74,9 +74,12 @@ public class ProductStoreService  {
 		ODataParameter skip 		  = ODataParameter.getSkipOption(params);
 		ODataParameter top  		  = ODataParameter.getTopOption(params);
 		List<ODataParameter> ordering = ODataParameter.getOrderBy(params);
+		String filterExpression		  = ODataParameter.getFilters(params);
 		for(ODataParameter item : ordering) {
 			System.out.println("Ordering by ["+item.getOrderByProperty()+"] "+(item.isDescending() ? "DESC":"ASC"));
 		}
+		System.out.println(filterExpression);
+		
 		if(skip != null) {
 			if(skip.getTopValue() < actual.size()) {
 				actual = actual.subList(skip.getSkipValue(), actual.size());

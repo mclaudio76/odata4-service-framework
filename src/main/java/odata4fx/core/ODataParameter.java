@@ -8,6 +8,7 @@ import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourcePrimitiveProperty;
+import org.apache.olingo.server.api.uri.queryoption.FilterOption;
 import org.apache.olingo.server.api.uri.queryoption.OrderByItem;
 import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
@@ -30,6 +31,8 @@ public class ODataParameter {
 	private boolean valid				= true;
 	private boolean descending			= false;
 	
+	private boolean isFilter			= false;
+	private String  filterExpression    = "";
 	
 	public ODataParameter(UriParameter param) {
 		this.propertyName  = param.getName();
@@ -54,6 +57,11 @@ public class ODataParameter {
 			isSkip		    = true;
 			SkipOption skip = (SkipOption) option;
 			skipValue	    =  skip.getValue();
+		}
+		if( option instanceof FilterOption) {
+			isFilter 		 = true;
+			filterExpression = option.getText();
+					
 		}
 	}
 	
@@ -177,6 +185,31 @@ public class ODataParameter {
 
 	public boolean isDescending() {
 		return descending;
+	}
+
+	public boolean isFilter() {
+		return isFilter;
+	}
+
+	public void setFilter(boolean isFilter) {
+		this.isFilter = isFilter;
+	}
+
+	public String getFilterExpression() {
+		return filterExpression;
+	}
+
+	public void setFilterExpression(String filterExpression) {
+		this.filterExpression = filterExpression;
+	}
+
+	public static String getFilters(List<ODataParameter> params) {
+		for(ODataParameter param : params) {
+			if(param.isFilter) {
+				return param.getFilterExpression();
+			}
+		}
+		return null;
 	}
 
 	

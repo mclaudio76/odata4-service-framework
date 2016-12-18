@@ -45,6 +45,7 @@ import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.apache.olingo.server.api.uri.queryoption.CountOption;
 import org.apache.olingo.server.api.uri.queryoption.ExpandItem;
 import org.apache.olingo.server.api.uri.queryoption.ExpandOption;
+import org.apache.olingo.server.api.uri.queryoption.FilterOption;
 import org.apache.olingo.server.api.uri.queryoption.OrderByItem;
 import org.apache.olingo.server.api.uri.queryoption.OrderByOption;
 import org.apache.olingo.server.api.uri.queryoption.SelectOption;
@@ -170,7 +171,9 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		 OrderByOption orderingOption			 = uriInfo.getOrderByOption();
 		 // Expand entities
 		 ExpandOption expandOption 				 = uriInfo.getExpandOption();
-		 
+		 // Filtering
+		 FilterOption filtering					 = uriInfo.getFilterOption();
+		  
 		 int lastIndex						 = resourcePaths.size()-1;
 		 for(int uriIndex = 0; uriIndex < resourcePaths.size(); uriIndex++) {
 			 UriResource currentResourcePart = resourcePaths.get(uriIndex);
@@ -184,7 +187,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   Object businessService      		 = instantiateDataService(edmEntityType);
 			   Class  workEntityClass      		 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
 			   List<ODataParameter> keys  		 = getKeyPredicates(uriInfo);
-			   addSystemQueryOptions(keys,countOption, topOption, skipOption, orderingOption);
+			   addSystemQueryOptions(keys,countOption, topOption, skipOption, orderingOption, filtering);
 			   // Is it a collection....
 			   if(uriEntitySet.isCollection()) {
 				  EntityCollection entitySet = new EntityCollection();
@@ -204,7 +207,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					  if(countOption != null && countOption.getValue()) {
 						  entitySet.setCount(currentReadCollection.size());
 					  }
-					  serializeCollection(request, response, responseFormat, edmEntitySet, entitySet, countOption, selectOption,expandOption);
+					  serializeCollection(request, response, responseFormat, edmEntitySet, entitySet, countOption, selectOption,expandOption, filtering);
 					  return;
 				  }
 				
@@ -220,7 +223,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 					  if(expandOption != null) {
 						  applyExpansion(currentEdmEntitySet, actualODataEntity,currentWorkingEntity, expandOption);
 					  }
-					  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption);
+					  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption, filtering);
 				  }
 			   }
 			}
@@ -229,7 +232,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				EdmEntityType edmEntityType 		 = uriEntityNavigation.getProperty().getType();
 				Object businessService      		 = instantiateDataService(edmEntityType);
 				List<ODataParameter> params  		 = getParametersForNavigation(uriEntityNavigation);
-				addSystemQueryOptions(params,countOption, topOption, skipOption,orderingOption);
+				addSystemQueryOptions(params,countOption, topOption, skipOption,orderingOption,filtering);
 				
 				if(currentWorkingEntity == null) {
 					throw createException("Required navigation for a NULL Object", HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -255,7 +258,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 							if(expandOption != null) {
 							    applyExpansion(currentEdmEntitySet, actualODataEntity,currentWorkingEntity, expandOption);
 							}
-							serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption);
+							serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption,filtering);
 						}
 						else {
 							EntityCollection entityCollection = new EntityCollection();
@@ -269,7 +272,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 							if(countOption != null && countOption.getValue()) {
 								entityCollection.setCount(currentReadCollection.size());
 							}
-							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection, countOption,selectOption,expandOption);
+							serializeCollection(request, response, responseFormat, currentEdmEntitySet, entityCollection, countOption,selectOption,expandOption,filtering);
 						}
 					}
 				}
@@ -305,7 +308,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 						if(expandOption != null && currentWorkingEntity != null) {
 						    applyExpansion(currentEdmEntitySet, actualODataEntity,currentWorkingEntity, expandOption);
 						}
-					    serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption);
+					    serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity,selectOption,expandOption,filtering);
 					 }
 				}
 			}
