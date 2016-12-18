@@ -1,24 +1,90 @@
 package odata4fx.demo;
 
 
+import java.util.Properties;
+
+import javax.persistence.EntityManager;
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.orm.jpa.JpaVendorAdapter;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import odata4fx.core.Endpoint;
 
 @Configuration
+@EnableTransactionManagement
 public class ApplicationConfiguration {
 	
+	@Autowired
+	Endpoint workEndpoint;
+	
+	@Autowired
+	private Environment env;
+	
+	
+	
 	@Bean
-	public ServletRegistrationBean servletRegistrationBean(){
+	public DataSource getDatasource() {
+        return DataSourceBuilder.create()
+        	   .driverClassName(env.getProperty("spring.datasource.driver-class-name"))
+        	   .url(env.getProperty("spring.datasource.url"))
+        	   .username(env.getProperty("spring.datasource.username"))
+        	   .password(env.getProperty("spring.datasource.password"))
+        	   .build();
+    }
+	
+	@Bean
+    public JpaVendorAdapter getJPAVendorAdapter() {
+        HibernateJpaVendorAdapter jpaVendorAdapter = new HibernateJpaVendorAdapter();
+        jpaVendorAdapter.setGenerateDdl(true);
+        jpaVendorAdapter.setShowSql(env.getProperty("spring.jpa.show-sql").trim().equalsIgnoreCase("true"));
+        jpaVendorAdapter.setDatabasePlatform(env.getProperty("spring.jpa.properties.hibernate.dialect"));
+        return jpaVendorAdapter;
+    } 
+	
+	
+	/*@Bean
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
+        LocalContainerEntityManagerFactoryBean lef = new LocalContainerEntityManagerFactoryBean();
+        lef.setDataSource(getDatasource());
+        lef.setPersistenceUnitName("odata-spring");
+        lef.setJpaVendorAdapter(getJPAVendorAdapter());
+        Properties properties = new Properties();
+        properties.setProperty("spring.jpa.hibernate.ddl-auto",env.getProperty("spring.jpa.hibernate.ddl-auto"));
+        lef.setJpaProperties(properties);
+        return lef;
+    } */   
+	
+	
+	@Bean
+	public Endpoint getProductStoreService() {
 		Endpoint endPoint = new Endpoint("Demo");
 		endPoint.addEntity(Product.class)
 				.addEntity(Category.class);
-		
-	    return new ServletRegistrationBean(endPoint,"/ProductStore/*");
+		return endPoint;
+	}
+	
+	
+	
+	@Bean
+	public ServletRegistrationBean servletRegistrationBean(){
+	    return new ServletRegistrationBean(workEndpoint,"/ProductStore/*");
 	}
 	  
+	@Bean 
+	public ProductStoreService initProductStoreService() {
+		return new ProductStoreService();
+	}
+	
+	
 	
 	
 }

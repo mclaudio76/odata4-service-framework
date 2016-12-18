@@ -3,6 +3,8 @@ package odata4fx.core;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -12,17 +14,18 @@ import org.apache.olingo.commons.api.edmx.EdmxReference;
 import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
-
-
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 public class Endpoint extends HttpServlet {
 	/**
 	 * 
 	 */
+	
 	private static final long serialVersionUID = 1L;
 	private String nameSpace = "";
 	
+	private EntityManager entityManager;
 	
 	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
 	
@@ -39,7 +42,9 @@ public class Endpoint extends HttpServlet {
 		return this;
 	}
 	
-	
+	public void setEntityManager(EntityManager emf) {
+		this.entityManager = emf;
+	}
 	
 	
 	public void process(HttpServletRequest req, HttpServletResponse response) {
