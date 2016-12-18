@@ -3,6 +3,14 @@ package odata4fx.demo;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 
@@ -10,18 +18,25 @@ import odata4fx.core.annotations.ODataEntity;
 import odata4fx.core.annotations.ODataField;
 import odata4fx.core.annotations.ODataNavigationProperty;
 
+@Entity
+@Table(name = "productcategory")
 @ODataEntity(entityName="Category",entitySetName="Categories", controller=ProductStoreService.class)
 public class Category {
 	
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	@ODataField(isKey=true, ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.Int32)
 	public Integer categoryID;
 	
+	@NotNull
 	@ODataField(ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.String)
 	public String  categoryDescription;
 	
+	@NotNull
 	@ODataField(ODataTypeKind=EdmTypeKind.PRIMITIVE, ODataType=EdmPrimitiveTypeKind.String)
 	public String  shortName;
 	
+	@OneToMany
 	@ODataNavigationProperty(entityType=Product.class, name="Products", path="Products", target="Products", nullable=false, partner="Category")
 	public List<Product> products = new ArrayList<Product>();
 
