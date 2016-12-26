@@ -15,18 +15,29 @@ import org.apache.olingo.commons.api.edm.provider.CsdlNavigationProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlNavigationPropertyBinding;
 import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
-import org.apache.olingo.commons.api.ex.ODataException;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
 
 import odata4fx.core.annotations.ODataController;
 import odata4fx.core.annotations.ODataEntity;
 import odata4fx.core.annotations.ODataField;
 import odata4fx.core.annotations.ODataNavigationProperty;
-	
+
+@Service
 public class ODataEntityHelper {
 	
 	private static Locale locale = Locale.ENGLISH;
+	
+	private ApplicationContext context;
+	
+	
+	@Autowired
+	public void setApplicationContext(ApplicationContext ctx) {
+		this.context = ctx;
+	}
 	
 	public String getEntityName(Class<?> clz) throws ODataApplicationException {
 		if(clz.isAnnotationPresent(ODataEntity.class)) {
@@ -52,11 +63,15 @@ public class ODataEntityHelper {
 		try {
 			if(clz.isAnnotationPresent(ODataEntity.class)) {
 				ODataEntity metaData  = (ODataEntity) clz.getAnnotation(ODataEntity.class);
-				Class controllerClass = metaData.controller();
+				Class<?>controllerClass = metaData.controller();
 				if(!controllerClass.isAnnotationPresent(ODataController.class)) {
 					throw new ODataApplicationException("Class ["+controllerClass+"] is not annotated with @ODataController",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
 				}
-				return  metaData.controller().newInstance();
+				Object requiredBean = context.getBean(controllerClass); 
+				if(requiredBean == null) {
+					requiredBean  = controllerClass.newInstance();
+				}
+				return  requiredBean;
 			}
 			else {
 				throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);

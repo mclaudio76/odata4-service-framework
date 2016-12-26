@@ -3,6 +3,7 @@ package odata4fx.demo;
 
 import java.util.Properties;
 
+import javax.inject.Scope;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
@@ -21,6 +22,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import odata4fx.core.Endpoint;
+import odata4fx.core.ODataEntityHelper;
 
 @Configuration
 @EnableTransactionManagement
@@ -69,7 +71,7 @@ public class ApplicationConfiguration {
     public EntityManagerFactory entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean lef = new LocalContainerEntityManagerFactoryBean();
         lef.setDataSource(getDatasource());
-        lef.setPackagesToScan("odata4x.demo");
+        lef.setPackagesToScan("odata4fx.demo");
         lef.setPersistenceUnitName("odata-spring");
         lef.setJpaVendorAdapter(getJPAVendorAdapter());
         Properties properties = new Properties();
@@ -81,13 +83,22 @@ public class ApplicationConfiguration {
 	
 	
 	@Bean
-	public Endpoint getProductStoreService() {
+	public Endpoint getProductStoreServiceEndpoint() {
 		Endpoint endPoint = new Endpoint("Demo");
 		endPoint.addEntity(Product.class)
 				.addEntity(Category.class);
 		return endPoint;
 	}
 	
+	@Bean
+	public ProductStoreService getProductStoreService() {
+		return new ProductStoreService();
+	}
+	
+	@Bean
+	public ODataEntityHelper getODataEntityHelper() {
+		return new ODataEntityHelper();
+	}
 	
 	
 	@Bean

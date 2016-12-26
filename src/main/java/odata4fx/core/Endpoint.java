@@ -15,6 +15,7 @@ import org.apache.olingo.commons.api.edmx.EdmxReference;
 import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service	
@@ -27,6 +28,9 @@ public class Endpoint extends HttpServlet {
 	private String nameSpace = "";
 	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
 	
+	
+	@Autowired
+	private ODataEntityHelper odataEntityHelper;
 	
 	public Endpoint(String nameSpace) {
 		super();
@@ -45,9 +49,10 @@ public class Endpoint extends HttpServlet {
 	@PersistenceUnit
 	public void initEntityManager(EntityManagerFactory emf) {
 		em = emf.createEntityManager();
-		System.out.println("Entity Manager injected >> ");
+		System.out.println("Entity Manager injected >> "+em);
 	}
-    
+	
+	
 	
 	public void process(HttpServletRequest req, HttpServletResponse response) {
 		try {
@@ -58,7 +63,7 @@ public class Endpoint extends HttpServlet {
 			OData odata = OData.newInstance();
 	        ServiceMetadata edm = odata.createServiceMetadata(provider, new ArrayList<EdmxReference>());
 	        ODataHttpHandler handler = odata.createHandler(edm);
-	        handler.register(new ODataServiceHandler(provider));
+	        handler.register(new ODataServiceHandler(provider,odataEntityHelper));
 	        handler.process(req, response);
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);

@@ -5,6 +5,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
+
+import org.springframework.transaction.annotation.Transactional;
+
 import odata4fx.core.ODataEntityHelper;
 import odata4fx.core.ODataParameter;
 import odata4fx.core.annotations.ODataController;
@@ -17,13 +23,22 @@ import odata4fx.core.annotations.ODataUpdateEntity;
 
 
 @ODataController
+@Transactional
 public class ProductStoreService  {
 	
 	private static ArrayList<Product> products 		= new ArrayList<>();	
 	private static ArrayList<Category> categories   = new ArrayList<>();	
 	private static Boolean inited					= false;
+	private ODataEntityHelper helper				= new ODataEntityHelper();
 	
-	private ODataEntityHelper helper	= new ODataEntityHelper();
+	private EntityManager entityManager				= null;
+	
+	
+	@PersistenceUnit
+	public void setEntityManager(EntityManagerFactory emf) {
+		entityManager = emf.createEntityManager();
+	}
+	
 	
 	public ProductStoreService() {
 		synchronized (inited) {
@@ -118,6 +133,8 @@ public class ProductStoreService  {
 	public Product createProduct(List<ODataParameter> values) {
 		Product product = new Product();
 		helper.setFieldsValueFromEntity(product, values);
+		product.ID = null;
+		entityManager.persist(product);
 		products.add(product);
 		return product;
 	}

@@ -52,6 +52,7 @@ import org.apache.olingo.server.api.uri.queryoption.SelectOption;
 import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
+import org.springframework.core.annotation.AnnotationUtils;
 
 import odata4fx.core.annotations.ODataCreateEntity;
 import odata4fx.core.annotations.ODataDeleteEntity;
@@ -69,15 +70,16 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	private GenericEDMProvider  edmProvider;
 	private Locale				locale = Locale.ENGLISH;
 	 
-	public ODataServiceHandler(GenericEDMProvider provider) {
+	public ODataServiceHandler(GenericEDMProvider provider, ODataEntityHelper odataEntityHelper) {
 		this.edmProvider = provider;
+		this.oDataHelper = odataEntityHelper;
 	}
 	
 	@Override
 	public void init(OData odata, ServiceMetadata metadata) {
 		this.initODataItem = odata;
 		this.initServiceMetaData = metadata;
-		this.oDataHelper = new ODataEntityHelper();
+		
 	}
 	
 	@Override
@@ -506,21 +508,27 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		  }
 	}
 	
-
+	
+	
 	/// Reflection support for invoking methods.
 	/// Verifies if, given a certain annotation, a method with such annotation exists and accepts expected parameters
 	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, List<ODataParameter> params) throws ODataApplicationException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
+			System.out.println(method.getName());
+		}
+		
+		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
 			// Target method must be annotated with required annotation
-			boolean annotationPresent = method.isAnnotationPresent(annotation);
+			Annotation   mAnnotation 	 = AnnotationUtils.findAnnotation(method, annotation);
+			boolean annotationPresent = mAnnotation != null;
 			if(annotationPresent) {
 				boolean matches  		  = annotationPresent; 
 				Class<?>   returnType	  = method.getReturnType();
 				// Reading collections of entities
 				if(annotation.equals(ODataReadEntityCollection.class)) {
-					ODataReadEntityCollection actualAnnotation = (ODataReadEntityCollection) method.getAnnotation(annotation); 
+					ODataReadEntityCollection actualAnnotation = (ODataReadEntityCollection) mAnnotation; 
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= Collection.class.isAssignableFrom(returnType); // Must return a Collection
@@ -531,7 +539,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				}
 				else // Read of an entity
 				if(annotation.equals(ODataReadEntity.class)) {
-					ODataReadEntity actualAnnotation = (ODataReadEntity) method.getAnnotation(annotation);
+					ODataReadEntity actualAnnotation = (ODataReadEntity) mAnnotation;
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= returnType.equals(workEntityClass); // Must return an object
@@ -542,7 +550,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				}
 				else // Creation of an Entity
 				if(annotation.equals(ODataCreateEntity.class)) {
-					ODataCreateEntity actualAnnotation = (ODataCreateEntity) method.getAnnotation(annotation);
+					ODataCreateEntity actualAnnotation = (ODataCreateEntity)  mAnnotation;
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= returnType.equals(workEntityClass); // Must return an object
@@ -553,7 +561,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				}
 				else // Deletion of an Entity
 				if(annotation.equals(ODataDeleteEntity.class)) {
-					ODataDeleteEntity actualAnnotation = (ODataDeleteEntity) method.getAnnotation(annotation);
+					ODataDeleteEntity actualAnnotation = (ODataDeleteEntity)  mAnnotation;
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class); // must return nothing
@@ -564,7 +572,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 				}
 				else // Update of an entity
 				if(annotation.equals(ODataUpdateEntity.class)) {
-					ODataUpdateEntity actualAnnotation = (ODataUpdateEntity) method.getAnnotation(annotation);
+					ODataUpdateEntity actualAnnotation = (ODataUpdateEntity)  mAnnotation;
 					matches			&= actualAnnotation.value().equals(workEntityClass);
 					matches			&= mParams.length == 1 && mParams[0].isAssignableFrom(params.getClass()); // Required parameter must by an array of ODataParamValue
 					matches			&= returnType.equals(workEntityClass); // Must return an object
@@ -590,7 +598,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	private Object invokeNavigationMethod(Object businessService, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, List<ODataParameter> params) throws ODataApplicationException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
-			Class[] mParams  = method.getParameterTypes();
+			Class<?>[] mParams  = method.getParameterTypes();
 			// Target method must be annotated with required annotation
 			boolean annotationPresent = method.isAnnotationPresent(annotation);
 			if(annotationPresent) {

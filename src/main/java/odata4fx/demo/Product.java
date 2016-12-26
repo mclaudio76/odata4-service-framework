@@ -34,7 +34,7 @@ public class Product {
 	public String  description;
 	
 	@OneToOne
-	@ODataNavigationProperty(entityType=Category.class, name="Category", path="Category", target="Categories", nullable=false, partner="Products")
+	@ODataNavigationProperty(entityType=Category.class, name="Category", path="Category", target="Categories", nullable=true, partner="Products")
 	public Category category = null;
 	
 	public Product() {
