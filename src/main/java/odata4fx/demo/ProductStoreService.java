@@ -5,10 +5,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.transaction.Transactional;
-
 import odata4fx.core.ODataEntityHelper;
 import odata4fx.core.ODataParameter;
 import odata4fx.core.annotations.ODataController;
@@ -21,15 +17,11 @@ import odata4fx.core.annotations.ODataUpdateEntity;
 
 
 @ODataController
-@Transactional
 public class ProductStoreService  {
 	
 	private static ArrayList<Product> products 		= new ArrayList<>();	
 	private static ArrayList<Category> categories   = new ArrayList<>();	
 	private static Boolean inited					= false;
-	
-	@PersistenceContext
-    private EntityManager em;
 	
 	private ODataEntityHelper helper	= new ODataEntityHelper();
 	

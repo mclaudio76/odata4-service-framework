@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -14,21 +15,18 @@ import org.apache.olingo.commons.api.edmx.EdmxReference;
 import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
+import org.springframework.stereotype.Service;
 
-
+@Service	
 public class Endpoint extends HttpServlet {
 	/**
 	 * 
 	 */
-	
-	
-	
+	private EntityManager em;
 	private static final long serialVersionUID = 1L;
 	private String nameSpace = "";
-	
-	
-	
 	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
+	
 	
 	public Endpoint(String nameSpace) {
 		super();
@@ -44,7 +42,12 @@ public class Endpoint extends HttpServlet {
 	}
 	
 	
-	
+	@PersistenceUnit
+	public void initEntityManager(EntityManagerFactory emf) {
+		em = emf.createEntityManager();
+		System.out.println("Entity Manager injected >> ");
+	}
+    
 	
 	public void process(HttpServletRequest req, HttpServletResponse response) {
 		try {

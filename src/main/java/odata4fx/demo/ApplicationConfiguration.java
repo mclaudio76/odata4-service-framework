@@ -3,10 +3,7 @@ package odata4fx.demo;
 
 import java.util.Properties;
 
-import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceUnit;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +29,9 @@ public class ApplicationConfiguration {
 	
 	@Autowired
 	private Environment env;
+	
+	@Autowired
+	private Endpoint serviceEndpoint;
 	
 	
 	@Bean
@@ -69,7 +69,6 @@ public class ApplicationConfiguration {
     public EntityManagerFactory entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean lef = new LocalContainerEntityManagerFactoryBean();
         lef.setDataSource(getDatasource());
-        // This line is required to avoid any persistence.xml file.
         lef.setPackagesToScan("odata4x.demo");
         lef.setPersistenceUnitName("odata-spring");
         lef.setJpaVendorAdapter(getJPAVendorAdapter());
@@ -93,7 +92,7 @@ public class ApplicationConfiguration {
 	
 	@Bean
 	public ServletRegistrationBean servletRegistrationBean(){
-	    return new ServletRegistrationBean(getProductStoreService(),"/ProductStore/*");
+	    return new ServletRegistrationBean(serviceEndpoint,"/ProductStore/*");
 	}
 	  
 	
