@@ -515,10 +515,6 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	private Object invokeMethod(Object businessService, Class<?> workEntityClass, Class<? extends Annotation> annotation, List<ODataParameter> params) throws ODataApplicationException {
 		Method targetMethod = null;
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
-			System.out.println(method.getName());
-		}
-		
-		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
 			// Target method must be annotated with required annotation
 			Annotation   mAnnotation 	 = AnnotationUtils.findAnnotation(method, annotation);

@@ -8,9 +8,6 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
-
-import org.springframework.transaction.annotation.Transactional;
-
 import odata4fx.core.ODataEntityHelper;
 import odata4fx.core.ODataParameter;
 import odata4fx.core.annotations.ODataController;
@@ -23,7 +20,6 @@ import odata4fx.core.annotations.ODataUpdateEntity;
 
 
 @ODataController
-@Transactional
 public class ProductStoreService  {
 	
 	private static ArrayList<Product> products 		= new ArrayList<>();	
@@ -129,12 +125,16 @@ public class ProductStoreService  {
 		return null;
 	}
 
+	
 	@ODataCreateEntity(Product.class)
 	public Product createProduct(List<ODataParameter> values) {
 		Product product = new Product();
 		helper.setFieldsValueFromEntity(product, values);
 		product.ID = null;
+		//entityManager.getTransaction().begin();
 		entityManager.persist(product);
+		entityManager.flush();
+		//entityManager.getTransaction().commit();
 		products.add(product);
 		return product;
 	}
