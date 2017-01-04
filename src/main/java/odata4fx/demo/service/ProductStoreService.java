@@ -6,9 +6,10 @@ import java.util.Comparator;
 import java.util.List;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
-import javax.transaction.Transactional;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import odata4fx.core.ODataEntityHelper;
 import odata4fx.core.ODataParameter;
@@ -26,13 +27,16 @@ public class ProductStoreService implements IProductStoreService  {
 	private ODataEntityHelper helper				= new ODataEntityHelper();
 	
 	
-	private EntityManagerFactory entityManagerFactory = null;
+	//private EntityManagerFactory entityManagerFactory = null;
 	
 	
-	@PersistenceUnit
+	/*@PersistenceUnit
 	public void setEntityManager(EntityManagerFactory emf) {
 		this.entityManagerFactory = emf;
-	}
+	}*/
+	
+	@Autowired
+	EntityManager entityManager;
 	
 	
 	public ProductStoreService() {
@@ -133,9 +137,8 @@ public class ProductStoreService implements IProductStoreService  {
 		Product product = new Product();
 		helper.setFieldsValueFromEntity(product, values);
 		product.ID = null;
-		EntityManager em = entityManagerFactory.createEntityManager(); 
-		em.persist(product);
-		em.flush();
+		entityManager.persist(product);
+		entityManager.flush();
 		products.add(product);
 		return product;
 	}
@@ -146,9 +149,8 @@ public class ProductStoreService implements IProductStoreService  {
 		product.description = "Created from scratch";
 		product.name        = "Unset name";
 		product.ID 			= null;
-		EntityManager em = entityManagerFactory.createEntityManager(); 
-		em.persist(product);
-		em.flush();
+		entityManager.persist(product);
+		entityManager.flush();
 	}
 
 	/* (non-Javadoc)
