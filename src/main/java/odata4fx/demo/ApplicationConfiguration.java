@@ -91,7 +91,7 @@ public class ApplicationConfiguration {
 	}
 	
 	@Bean
-	public ProductStoreService getProductStoreService() {
+	public IProductStoreService getProductStoreService() {
 		return new ProductStoreService();
 	}
 	

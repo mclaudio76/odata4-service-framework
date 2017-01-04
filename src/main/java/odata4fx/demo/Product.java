@@ -17,7 +17,7 @@ import odata4fx.core.annotations.ODataNavigationProperty;
 	
 @Entity
 @Table(name = "products")
-@ODataEntity(entityName="Product",entitySetName="Products", controller=ProductStoreService.class)
+@ODataEntity(entityName="Product",entitySetName="Products", controller=IProductStoreService.class)
 public class Product {
 
 	@Id

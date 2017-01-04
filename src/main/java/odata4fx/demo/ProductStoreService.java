@@ -20,7 +20,7 @@ import odata4fx.core.annotations.ODataUpdateEntity;
 
 
 @ODataController
-public class ProductStoreService  {
+public class ProductStoreService implements IProductStoreService  {
 	
 	private static ArrayList<Product> products 		= new ArrayList<>();	
 	private static ArrayList<Category> categories   = new ArrayList<>();	
@@ -28,6 +28,7 @@ public class ProductStoreService  {
 	private ODataEntityHelper helper				= new ODataEntityHelper();
 	
 	private EntityManager entityManager				= null;
+	
 	
 	
 	@PersistenceUnit
@@ -70,6 +71,8 @@ public class ProductStoreService  {
 	} 
 	
 	
+	
+	@Override
 	@ODataReadEntityCollection(Product.class)
 	public List<Product> listAllProducts(List<ODataParameter> params) {
 		
@@ -115,6 +118,10 @@ public class ProductStoreService  {
 	
 	
 
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#findProductByKey(java.util.List)
+	 */
+	@Override
 	@ODataReadEntity(Product.class)
 	public Product findProductByKey(List<ODataParameter>  keys) {
 		for(Product p : products) {
@@ -126,6 +133,10 @@ public class ProductStoreService  {
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#createProduct(java.util.List)
+	 */
+	@Override
 	@ODataCreateEntity(Product.class)
 	public Product createProduct(List<ODataParameter> values) {
 		Product product = new Product();
@@ -139,6 +150,10 @@ public class ProductStoreService  {
 		return product;
 	}
 
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#deleteProduct(java.util.List)
+	 */
+	@Override
 	@ODataDeleteEntity(Product.class)
 	public void deleteProduct(List<ODataParameter> keys) {
 		Product p = findProductByKey(keys);
@@ -147,6 +162,10 @@ public class ProductStoreService  {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#updateProduct(java.util.List)
+	 */
+	@Override
 	@ODataUpdateEntity(Product.class)
 	public Product updateProduct(List<ODataParameter> keys) {
 		return null;
@@ -154,11 +173,19 @@ public class ProductStoreService  {
 
 	// Navigation, from product to categories
 	
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#getAssociatedCategory(odata4fx.demo.Product, java.util.List)
+	 */
+	@Override
 	@ODataNavigation(fromEntity=Product.class, toEntity=Category.class)
 	public Category getAssociatedCategory(Product item, List<ODataParameter> params) {
 		return item.category;
 	}
 	
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#getAssociatedProducts(odata4fx.demo.Category, java.util.List)
+	 */
+	@Override
 	@ODataNavigation(fromEntity=Category.class, toEntity=Product.class)
 	public List<Product> getAssociatedProducts(Category item, List<ODataParameter> params) {
 		List<Product> result = new ArrayList<Product>();
@@ -171,15 +198,20 @@ public class ProductStoreService  {
 	}
 	
 	
-	/****
-	 * Categories
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#listAllCategories(java.util.List)
 	 */
+	@Override
 	@ODataReadEntityCollection(Category.class)
 	public List<Category> listAllCategories(List<ODataParameter> keys) {
 		return categories;
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#findCategoryByKey(java.util.List)
+	 */
+	@Override
 	@ODataReadEntity(Category.class)
 	public Category findCategoryByKey(List<ODataParameter> keys) {
 		for(Category p : categories) {
@@ -190,6 +222,10 @@ public class ProductStoreService  {
 		return null;
 	}
 
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#createCategory(java.util.List)
+	 */
+	@Override
 	@ODataCreateEntity(Category.class)
 	public Category createCategory(List<ODataParameter> values) {
 		Category category = new Category();
@@ -198,6 +234,10 @@ public class ProductStoreService  {
 		return category;
 	}
 
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#deleteCategory(java.util.List)
+	 */
+	@Override
 	@ODataDeleteEntity(Category.class)
 	public void deleteCategory(List<ODataParameter>  keys) {
 		Category p = findCategoryByKey(keys);
@@ -206,6 +246,10 @@ public class ProductStoreService  {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see odata4fx.demo.IProductStoreService#updateCategory(java.util.List)
+	 */
+	@Override
 	@ODataUpdateEntity(Product.class)
 	public Category updateCategory(List<ODataParameter> values) {
 		return null;
