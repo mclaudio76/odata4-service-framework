@@ -79,7 +79,6 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	public void init(OData odata, ServiceMetadata metadata) {
 		this.initODataItem = odata;
 		this.initServiceMetaData = metadata;
-		
 	}
 	
 	@Override

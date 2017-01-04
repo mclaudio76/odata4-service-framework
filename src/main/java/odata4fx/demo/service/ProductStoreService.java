@@ -1,4 +1,4 @@
-package odata4fx.demo;
+package odata4fx.demo.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,8 +12,11 @@ import javax.transaction.Transactional;
 
 import odata4fx.core.ODataEntityHelper;
 import odata4fx.core.ODataParameter;
+import odata4fx.demo.entities.Category;
+import odata4fx.demo.entities.Product;
 
 	
+
 @Transactional
 public class ProductStoreService implements IProductStoreService  {
 	
@@ -22,13 +25,13 @@ public class ProductStoreService implements IProductStoreService  {
 	private static Boolean inited					= false;
 	private ODataEntityHelper helper				= new ODataEntityHelper();
 	
-	private EntityManager entityManager				= null;
 	
+	private EntityManagerFactory entityManagerFactory = null;
 	
 	
 	@PersistenceUnit
 	public void setEntityManager(EntityManagerFactory emf) {
-		entityManager = emf.createEntityManager();
+		this.entityManagerFactory = emf;
 	}
 	
 	
@@ -130,10 +133,22 @@ public class ProductStoreService implements IProductStoreService  {
 		Product product = new Product();
 		helper.setFieldsValueFromEntity(product, values);
 		product.ID = null;
-		entityManager.persist(product);
-		entityManager.flush();
+		EntityManager em = entityManagerFactory.createEntityManager(); 
+		em.persist(product);
+		em.flush();
 		products.add(product);
 		return product;
+	}
+	
+	@Override
+	public void testSave() {
+		Product product = new Product();
+		product.description = "Created from scratch";
+		product.name        = "Unset name";
+		product.ID 			= null;
+		EntityManager em = entityManagerFactory.createEntityManager(); 
+		em.persist(product);
+		em.flush();
 	}
 
 	/* (non-Javadoc)
@@ -231,6 +246,9 @@ public class ProductStoreService implements IProductStoreService  {
 	public Category updateCategory(List<ODataParameter> values) {
 		return null;
 	}
+
+
+	
 	
 
 }

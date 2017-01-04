@@ -1,4 +1,4 @@
-package odata4fx.demo;
+package odata4fx.demo.entities;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +17,7 @@ import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 import odata4fx.core.annotations.ODataEntity;
 import odata4fx.core.annotations.ODataField;
 import odata4fx.core.annotations.ODataNavigationProperty;
+import odata4fx.demo.service.IProductStoreService;
 
 @Entity
 @Table(name = "productcategory")
