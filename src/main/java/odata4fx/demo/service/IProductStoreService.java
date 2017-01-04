@@ -54,6 +54,6 @@ public interface IProductStoreService {
 	@ODataUpdateEntity(Product.class)
 	public Category updateCategory(List<ODataParameter> values);
 	
-	public void testSave();
+	
 
 }

@@ -143,19 +143,7 @@ public class ProductStoreService implements IProductStoreService  {
 		return product;
 	}
 	
-	@Override
-	public void testSave() {
-		Product product = new Product();
-		product.description = "Created from scratch";
-		product.name        = "Unset name";
-		product.ID 			= null;
-		entityManager.persist(product);
-		entityManager.flush();
-	}
-
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#deleteProduct(java.util.List)
-	 */
+		
 	@Override
 	public void deleteProduct(List<ODataParameter> keys) {
 		Product p = findProductByKey(keys);
@@ -164,27 +152,16 @@ public class ProductStoreService implements IProductStoreService  {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#updateProduct(java.util.List)
-	 */
 	@Override
 	public Product updateProduct(List<ODataParameter> keys) {
 		return null;
 	}
 
-	// Navigation, from product to categories
-	
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#getAssociatedCategory(odata4fx.demo.Product, java.util.List)
-	 */
 	@Override
 	public Category getAssociatedCategory(Product item, List<ODataParameter> params) {
 		return item.category;
 	}
 	
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#getAssociatedProducts(odata4fx.demo.Category, java.util.List)
-	 */
 	@Override
 	public List<Product> getAssociatedProducts(Category item, List<ODataParameter> params) {
 		List<Product> result = new ArrayList<Product>();
@@ -196,19 +173,14 @@ public class ProductStoreService implements IProductStoreService  {
 		return result;
 	}
 	
-	
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#listAllCategories(java.util.List)
-	 */
+
 	@Override
 	public List<Category> listAllCategories(List<ODataParameter> keys) {
 		return categories;
 	}
 
 	
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#findCategoryByKey(java.util.List)
-	 */
+	
 	@Override
 	public Category findCategoryByKey(List<ODataParameter> keys) {
 		for(Category p : categories) {
@@ -219,9 +191,6 @@ public class ProductStoreService implements IProductStoreService  {
 		return null;
 	}
 
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#createCategory(java.util.List)
-	 */
 	@Override
 	public Category createCategory(List<ODataParameter> values) {
 		Category category = new Category();
@@ -230,9 +199,6 @@ public class ProductStoreService implements IProductStoreService  {
 		return category;
 	}
 
-	/* (non-Javadoc)
-	 * @see odata4fx.demo.IProductStoreService#deleteCategory(java.util.List)
-	 */
 	@Override
 	public void deleteCategory(List<ODataParameter>  keys) {
 		Category p = findCategoryByKey(keys);
