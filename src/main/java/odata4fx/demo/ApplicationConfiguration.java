@@ -3,7 +3,6 @@ package odata4fx.demo;
 
 import java.util.Properties;
 
-
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
@@ -23,6 +22,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import odata4fx.core.Endpoint;
 import odata4fx.core.ODataEntityHelper;
+	
 
 @Configuration
 @EnableTransactionManagement
@@ -56,9 +56,9 @@ public class ApplicationConfiguration {
     } 
 	
 	@Bean
-    public PlatformTransactionManager transactionManager(EntityManagerFactory emf){
+    public PlatformTransactionManager transactionManager(){
        JpaTransactionManager transactionManager = new JpaTransactionManager();
-       transactionManager.setEntityManagerFactory(emf);
+	   transactionManager.setEntityManagerFactory(entityManagerFactory());
        return transactionManager;
    }
 	 
@@ -74,6 +74,7 @@ public class ApplicationConfiguration {
         lef.setPackagesToScan("odata4fx.demo");
         lef.setPersistenceUnitName("odata-spring");
         lef.setJpaVendorAdapter(getJPAVendorAdapter());
+        
         Properties properties = new Properties();
         properties.setProperty("spring.jpa.hibernate.ddl-auto",env.getProperty("spring.jpa.hibernate.ddl-auto"));
         lef.setJpaProperties(properties);

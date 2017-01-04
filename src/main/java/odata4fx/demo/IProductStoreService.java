@@ -3,6 +3,7 @@ package odata4fx.demo;
 import java.util.List;
 
 import odata4fx.core.ODataParameter;
+import odata4fx.core.annotations.ODataController;
 import odata4fx.core.annotations.ODataCreateEntity;
 import odata4fx.core.annotations.ODataDeleteEntity;
 import odata4fx.core.annotations.ODataNavigation;
@@ -10,9 +11,8 @@ import odata4fx.core.annotations.ODataReadEntity;
 import odata4fx.core.annotations.ODataReadEntityCollection;
 import odata4fx.core.annotations.ODataUpdateEntity;
 
+@ODataController
 public interface IProductStoreService {
-
-	
 
 	@ODataReadEntityCollection(Product.class)
 	public List<Product> listAllProducts(List<ODataParameter> params);

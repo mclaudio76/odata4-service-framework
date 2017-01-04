@@ -586,6 +586,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			return targetMethod.invoke(businessService, (Object) params);
 		}
 		catch(Exception e) {
+			e.printStackTrace(System.err);
 			throw createException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName()+"; original error is "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR);
 		}
 	}
