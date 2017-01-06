@@ -16,27 +16,27 @@ import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.context.ApplicationContext;
+//import org.springframework.stereotype.Service;
 
 import odata4fx.core.annotations.ODataController;
 import odata4fx.core.annotations.ODataEntity;
 import odata4fx.core.annotations.ODataField;
 import odata4fx.core.annotations.ODataNavigationProperty;
 
-@Service
+//@Service
 public class ODataEntityHelper {
 	
 	private static Locale locale = Locale.ENGLISH;
 	
-	private ApplicationContext context;
+	//private ApplicationContext context;
 	
 	
-	@Autowired
+	/*@Autowired
 	public void setApplicationContext(ApplicationContext ctx) {
 		this.context = ctx;
-	}
+	}*/
 	
 	public String getEntityName(Class<?> clz) throws ODataApplicationException {
 		if(clz.isAnnotationPresent(ODataEntity.class)) {
@@ -58,9 +58,32 @@ public class ODataEntityHelper {
 		}
 	}
 	
+	
+	private Class<?> getControllerClass(Class<?> entityClz) throws ODataApplicationException {
+		try {
+			if(entityClz.isAnnotationPresent(ODataEntity.class)) {
+				ODataEntity metaData  = (ODataEntity) entityClz.getAnnotation(ODataEntity.class);
+				Class<?>controllerClass = metaData.controller();
+				if(!controllerClass.isAnnotationPresent(ODataController.class)) {
+					throw new ODataApplicationException("Class ["+controllerClass+"] is not annotated with @ODataController",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
+				}
+				return controllerClass;
+			}
+			else {
+				throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
+			}
+		}
+		catch(Exception e) {
+			throw new ODataApplicationException("Unable to instantiate a controller for class ["+entityClz.getName()+"], reason is = "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
+		}
+	}
+	
 	public Object getController(Class<?> clz) throws ODataApplicationException {
 		try {
-			if(clz.isAnnotationPresent(ODataEntity.class)) {
+			Class controllerClass = getControllerClass(clz);
+			return controllerClass.newInstance();
+			
+			/*if(clz.isAnnotationPresent(ODataEntity.class)) {
 				ODataEntity metaData  = (ODataEntity) clz.getAnnotation(ODataEntity.class);
 				Class<?>controllerClass = metaData.controller();
 				if(!controllerClass.isAnnotationPresent(ODataController.class)) {
@@ -74,7 +97,7 @@ public class ODataEntityHelper {
 			}
 			else {
 				throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
-			}
+			} */
 		}
 		catch(Exception e) {
 			throw new ODataApplicationException("Unable to instantiate a controller for class ["+clz.getName()+"], reason is = "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);

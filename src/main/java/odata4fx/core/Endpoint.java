@@ -12,27 +12,29 @@ import org.apache.olingo.commons.api.edmx.EdmxReference;
 import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.stereotype.Service;
 
-@Service	
+//@Service	
 public class Endpoint extends HttpServlet {
 	/**
 	 * 
 	 */
 	
 	private static final long serialVersionUID = 1L;
-	private String nameSpace = "";
-	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
+	protected String nameSpace = "";
+	protected ArrayList<Class<?>> publishedClasses = new ArrayList<>();
 	
 	
-	@Autowired
-	private ODataEntityHelper odataEntityHelper;
+	//@Autowired
+	protected ODataEntityHelper odataEntityHelper;
 	
 	public Endpoint(String nameSpace) {
 		super();
 		this.nameSpace 		 = nameSpace;
+		this.odataEntityHelper = new ODataEntityHelper();
 	}
+	
 	
 	public Endpoint addEntity(Class<?> clz) {
 		if(!publishedClasses.contains(clz)) {

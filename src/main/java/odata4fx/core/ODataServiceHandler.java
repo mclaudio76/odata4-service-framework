@@ -52,7 +52,7 @@ import org.apache.olingo.server.api.uri.queryoption.SelectOption;
 import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
-import org.springframework.core.annotation.AnnotationUtils;
+
 
 import odata4fx.core.annotations.ODataCreateEntity;
 import odata4fx.core.annotations.ODataDeleteEntity;
@@ -516,7 +516,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 		for(Method method : businessService.getClass().getDeclaredMethods()) {
 			Class[] mParams  = method.getParameterTypes();
 			// Target method must be annotated with required annotation
-			Annotation   mAnnotation 	 = AnnotationUtils.findAnnotation(method, annotation);
+			Annotation   mAnnotation 	 = method.getAnnotation(annotation);//AnnotationUtils.findAnnotation(method, annotation);
 			boolean annotationPresent = mAnnotation != null;
 			if(annotationPresent) {
 				boolean matches  		  = annotationPresent; 
