@@ -1,6 +1,5 @@
 package odata4fx.core;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.ArrayList;
@@ -275,29 +274,6 @@ public class ODataEntityHelper {
 			}
 		}
 	}
-	
-	/*public boolean entityMatchesKeys(Object object, List<ODataParameter>  attributes) {
-		boolean matches = true;
-		for(ODataParameter paramValue : attributes) {
-			if(!paramValue.isSystemQueryOption()) {
-				try {
-					Object keyValue    = object.getClass().getDeclaredField(paramValue.propertyName).get(object);
-					Constructor<?> constr = keyValue.getClass().getConstructor(String.class);
-					if(constr == null) {
-						matches &= keyValue.toString().equals(paramValue.value);	
-					}
-					else {
-						Object pValue = constr.newInstance(paramValue.value);
-						matches &= keyValue.equals(pValue);
-					}
-				}
-				catch(Exception e) {
-					System.err.println(" Unable to inspect value ["+paramValue.propertyName+", "+paramValue.value+"]; error is "+e.getMessage());
-				}
-			}
-		}
-		return matches;
-	}*/
 	
 	
 }

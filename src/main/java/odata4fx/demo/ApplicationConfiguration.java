@@ -110,10 +110,6 @@ public class ApplicationConfiguration {
 	public ServletRegistrationBean servletRegistrationBean(){
 	    return new ServletRegistrationBean(serviceEndpoint,"/ProductStore/*");
 	}
-	  
-	
-	
-	
 	
 	
 }

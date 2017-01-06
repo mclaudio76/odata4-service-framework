@@ -3,9 +3,6 @@ package odata4fx.core;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -23,7 +20,7 @@ public class Endpoint extends HttpServlet {
 	/**
 	 * 
 	 */
-	private EntityManager em;
+	
 	private static final long serialVersionUID = 1L;
 	private String nameSpace = "";
 	private ArrayList<Class<?>> publishedClasses = new ArrayList<>();
@@ -44,15 +41,7 @@ public class Endpoint extends HttpServlet {
 		}
 		return this;
 	}
-	
-	
-	@PersistenceUnit
-	public void initEntityManager(EntityManagerFactory emf) {
-		em = emf.createEntityManager();
-		System.out.println("Entity Manager injected >> "+em);
-	}
-	
-	
+			
 	
 	public void process(HttpServletRequest req, HttpServletResponse response) {
 		try {
