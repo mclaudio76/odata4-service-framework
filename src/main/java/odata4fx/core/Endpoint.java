@@ -25,16 +25,17 @@ public class Endpoint extends HttpServlet {
 	protected String nameSpace = "";
 	protected ArrayList<Class<?>> publishedClasses = new ArrayList<>();
 	
-	
-	//@Autowired
-	protected ODataEntityHelper odataEntityHelper;
+	private ODataEntityHelper odataEntityHelper = new ODataEntityHelper();
 	
 	public Endpoint(String nameSpace) {
 		super();
 		this.nameSpace 		 = nameSpace;
-		this.odataEntityHelper = new ODataEntityHelper();
 	}
 	
+	
+	protected ODataEntityHelper getODataEntityHelper() {
+		return odataEntityHelper;
+	}
 	
 	public Endpoint addEntity(Class<?> clz) {
 		if(!publishedClasses.contains(clz)) {
@@ -54,7 +55,7 @@ public class Endpoint extends HttpServlet {
 			OData odata = OData.newInstance();
 	        ServiceMetadata edm = odata.createServiceMetadata(provider, new ArrayList<EdmxReference>());
 	        ODataHttpHandler handler = odata.createHandler(edm);
-	        handler.register(new ODataServiceHandler(provider,odataEntityHelper));
+	        handler.register(new ODataServiceHandler(provider,getODataEntityHelper()));
 	        handler.process(req, response);
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
