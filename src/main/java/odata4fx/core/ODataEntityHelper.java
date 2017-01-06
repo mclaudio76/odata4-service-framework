@@ -29,6 +29,7 @@ import odata4fx.core.annotations.ODataNavigationProperty;
 public class ODataEntityHelper {
 	
 	private static Locale locale = Locale.ENGLISH;
+	private ODataControllerFactory controllerFactory = null;
 	
 	//private ApplicationContext context;
 	
@@ -37,6 +38,16 @@ public class ODataEntityHelper {
 	public void setApplicationContext(ApplicationContext ctx) {
 		this.context = ctx;
 	}*/
+	
+	public ODataEntityHelper(ODataControllerFactory controllerFactory) {
+		this.controllerFactory = controllerFactory;
+	}
+	
+	
+	public ODataEntityHelper() {
+		this(null);
+	}
+	
 	
 	public String getEntityName(Class<?> clz) throws ODataApplicationException {
 		if(clz.isAnnotationPresent(ODataEntity.class)) {
@@ -59,7 +70,7 @@ public class ODataEntityHelper {
 	}
 	
 	
-	private Class<?> getControllerClass(Class<?> entityClz) throws ODataApplicationException {
+	public Class<?> getControllerClass(Class<?> entityClz) throws ODataApplicationException {
 		try {
 			if(entityClz.isAnnotationPresent(ODataEntity.class)) {
 				ODataEntity metaData  = (ODataEntity) entityClz.getAnnotation(ODataEntity.class);
@@ -81,23 +92,12 @@ public class ODataEntityHelper {
 	public Object getController(Class<?> clz) throws ODataApplicationException {
 		try {
 			Class controllerClass = getControllerClass(clz);
-			return controllerClass.newInstance();
-			
-			/*if(clz.isAnnotationPresent(ODataEntity.class)) {
-				ODataEntity metaData  = (ODataEntity) clz.getAnnotation(ODataEntity.class);
-				Class<?>controllerClass = metaData.controller();
-				if(!controllerClass.isAnnotationPresent(ODataController.class)) {
-					throw new ODataApplicationException("Class ["+controllerClass+"] is not annotated with @ODataController",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
-				}
-				Object requiredBean = context.getBean(controllerClass); 
-				if(requiredBean == null) {
-					requiredBean  = controllerClass.newInstance();
-				}
-				return  requiredBean;
+			if(controllerFactory == null) {
+				return controllerClass.newInstance();
 			}
-			else {
-				throw new ODataApplicationException("Object isn't annotated with @ODataEntity ",HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
-			} */
+			else  {
+				return controllerFactory.instantiateController(controllerClass);
+			}
 		}
 		catch(Exception e) {
 			throw new ODataApplicationException("Unable to instantiate a controller for class ["+clz.getName()+"], reason is = "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),locale);
