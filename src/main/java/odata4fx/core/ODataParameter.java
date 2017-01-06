@@ -1,5 +1,7 @@
 package odata4fx.core;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,11 +36,30 @@ public class ODataParameter {
 	private boolean isFilter			= false;
 	private String  filterExpression    = "";
 	
-	public ODataParameter(UriParameter param) {
+	public ODataParameter(UriParameter param, Class entityClass) {
 		this.propertyName  = param.getName();
 		this.value		   = param.getText();
+		/***
+		 * If a target entity class is specified, the constructor does it best to try to covert a text value into
+		 * entity's field property type value. To do this, field type must type a Constructor accepting a String object as parameter.
+		 * Otherwise, value as string is preserved.
+		 */
+		if(entityClass != null) {
+			try {
+				Constructor<?> constr = entityClass.getDeclaredField(this.propertyName).getType().getConstructor(String.class);
+				this.value			  = constr.newInstance(this.value);
+			} 
+			catch (NoSuchMethodException | SecurityException | NoSuchFieldException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				
+			}
+		}
 		this.isSystemQueryOption = false;
 	}
+	
+	public ODataParameter(UriParameter param) {
+		this(param,null);
+	}
+	
 	
 	public ODataParameter(Property paramProperty) {
 		this.propertyName = paramProperty.getName();

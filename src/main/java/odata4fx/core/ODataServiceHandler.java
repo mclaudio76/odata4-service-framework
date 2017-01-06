@@ -118,10 +118,10 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	
 	@Override
 	public void deleteEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo)	throws ODataApplicationException, ODataLibraryException {
-  	   List<ODataParameter> keys	     = getKeyPredicates(uriInfo);
   	   EdmEntitySet edmEntitySet     = getEdmEntitySet(uriInfo);
 	   Object businessService 		 = instantiateDataService(edmEntitySet.getEntityType());
 	   Class  workEntityClass     	 = edmProvider.findActualClass(edmEntitySet.getEntityType().getFullQualifiedName());
+	   List<ODataParameter> keys	     = getKeyPredicates(uriInfo,workEntityClass);
 	   invokeMethod(businessService, workEntityClass, ODataDeleteEntity.class,keys);
 	   response.setStatusCode(HttpStatusCode.NO_CONTENT.getStatusCode());
 	}
@@ -187,7 +187,7 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 			   EdmEntityType edmEntityType 		 = edmEntitySet.getEntityType();
 			   Object businessService      		 = instantiateDataService(edmEntityType);
 			   Class  workEntityClass      		 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
-			   List<ODataParameter> keys  		 = getKeyPredicates(uriInfo);
+			   List<ODataParameter> keys  		 = getKeyPredicates(uriInfo,workEntityClass);
 			   addSystemQueryOptions(keys,countOption, topOption, skipOption, orderingOption, filtering);
 			   // Is it a collection....
 			   if(uriEntitySet.isCollection()) {
@@ -451,16 +451,16 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 
 	
 	
-	private List<ODataParameter> getKeyPredicates(UriInfo uriInfo) {
+	private List<ODataParameter> getKeyPredicates(UriInfo uriInfo, Class entityClass) {
 		UriResourceEntitySet uriResourceEntitySet 	= (UriResourceEntitySet) uriInfo.getUriResourceParts().get(0);
-		return getKeyPredicates(uriResourceEntitySet);
+		return getKeyPredicates(uriResourceEntitySet, entityClass);
 	}
 	
-	private List<ODataParameter> getKeyPredicates(UriResourceEntitySet uriResourceEntitySet) {
+	private List<ODataParameter> getKeyPredicates(UriResourceEntitySet uriResourceEntitySet,Class entityClass) {
 	    List<UriParameter> keyPredicates 			= uriResourceEntitySet.getKeyPredicates();
 	    List<ODataParameter> keys = new ArrayList<>();
 	    for(UriParameter uri : keyPredicates)  {
-	    	keys.add(new ODataParameter(uri));
+	    	keys.add(new ODataParameter(uri, entityClass));
 	    }
 	    return keys;
 	}
