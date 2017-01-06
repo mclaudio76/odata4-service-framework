@@ -276,7 +276,7 @@ public class ODataEntityHelper {
 		}
 	}
 	
-	public boolean entityMatchesKeys(Object object, List<ODataParameter>  attributes) {
+	/*public boolean entityMatchesKeys(Object object, List<ODataParameter>  attributes) {
 		boolean matches = true;
 		for(ODataParameter paramValue : attributes) {
 			if(!paramValue.isSystemQueryOption()) {
@@ -297,7 +297,7 @@ public class ODataEntityHelper {
 			}
 		}
 		return matches;
-	}
+	}*/
 	
 	
 }

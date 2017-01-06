@@ -93,8 +93,14 @@ public class ProductStoreService implements IProductStoreService  {
 	
 
 	@Override
-	public Product updateProduct(List<ODataParameter> keys) {
-		return null;
+	public Product updateProduct(List<ODataParameter> params) {
+		Product target = new Product();
+		helper.setFieldsValueFromEntity(target, params);
+		target = entityManager.find(Product.class, target.ID);
+		helper.setFieldsValueFromEntity(target, params);
+		entityManager.persist(target);
+		entityManager.flush();
+		return target;
 	}
 
 	// Category
@@ -164,7 +170,13 @@ public class ProductStoreService implements IProductStoreService  {
 	
 	@Override
 	public Category updateCategory(List<ODataParameter> values) {
-		return null;
+		Category target = new Category();
+		helper.setFieldsValueFromEntity(target, values);
+		target = entityManager.find(Category.class, target.categoryID);
+		helper.setFieldsValueFromEntity(target, values);
+		entityManager.persist(target);
+		entityManager.flush();
+		return target;
 	}
 
 
@@ -178,11 +190,11 @@ public class ProductStoreService implements IProductStoreService  {
 	@Override
 	public List<Product> getAssociatedProducts(Category item, List<ODataParameter> params) {
 		List<Product> result = new ArrayList<Product>();
-		for(Product p : item.products) {
+		/*for(Product p : item.products) {
 			if(helper.entityMatchesKeys(p, params)) {
 				result.add(p);
 			}
-		}
+		}*/
 		return result;
 	}
 	

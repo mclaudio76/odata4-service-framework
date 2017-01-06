@@ -29,7 +29,7 @@ public interface IProductStoreService {
 	public void deleteProduct(List<ODataParameter> keys);
 
 	@ODataUpdateEntity(Product.class)
-	public Product updateProduct(List<ODataParameter> keys);
+	public Product updateProduct(List<ODataParameter> params);
 	
 	@ODataNavigation(fromEntity=Product.class, toEntity=Category.class)
 	public Category getAssociatedCategory(Product item, List<ODataParameter> params);
