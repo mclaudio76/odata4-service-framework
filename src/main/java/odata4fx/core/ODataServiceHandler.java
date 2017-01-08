@@ -17,6 +17,7 @@ import org.apache.olingo.commons.api.edm.EdmBindingTarget;
 import org.apache.olingo.commons.api.edm.EdmElement;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
 import org.apache.olingo.commons.api.edm.EdmNavigationPropertyBinding;
 import org.apache.olingo.commons.api.format.ContentType;
 import org.apache.olingo.commons.api.http.HttpHeader;
@@ -55,6 +56,7 @@ import org.apache.olingo.server.api.uri.queryoption.TopOption;
 
 
 import odata4fx.core.annotations.ODataCreateEntity;
+import odata4fx.core.annotations.ODataCreateResourceLink;
 import odata4fx.core.annotations.ODataDeleteEntity;
 import odata4fx.core.annotations.ODataNavigation;
 import odata4fx.core.annotations.ODataReadEntity;
@@ -144,16 +146,59 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	  ODataDeserializer deserializer = initODataItem.createDeserializer(requestFormat);
 	  DeserializerResult result 	 = deserializer.entity(requestInputStream, edmEntityType);
 	  Entity requestEntity 			 = result.getEntity();
+	  
 	  List<ODataParameter> attributes = new ArrayList<>();
 	  for(Property prop : requestEntity.getProperties()) {
 		  attributes.add(new ODataParameter(prop));
 	  }
+	  
 	  Object target	= invokeMethod(businessService, businessServiceClass,workEntityClass, ODataUpdateEntity.class,attributes);
 	  Entity actualODataEntity  = oDataHelper.buildEntity(target);
+
+	  /**
+	   * Handling linked entities via @odata.bind, for example:
+	   * {
+			"ID":72,
+			"Category@odata.bind": "Categories(5)"
+		 }
+	   */
+	  for(final Link link : requestEntity.getNavigationBindings()) {
+	      final EdmNavigationProperty edmNavigationProperty = edmEntityType.getNavigationProperty(link.getTitle());
+	      final EdmEntitySet targetEntitySet = (EdmEntitySet) edmEntitySet.getRelatedBindingTarget(link.getTitle());
+	      boolean handleCollection   		 = edmNavigationProperty.isCollection(); 
+	      boolean handleSingleEntity 		 = !edmNavigationProperty.isCollection();
+	      if(handleCollection){
+	    	if(link.getBindingLinks() != null) {
+	    		 for(final String bindingLink : link.getBindingLinks()) {
+	    			 UriResourceEntitySet entitySetResource = initODataItem.createUriHelper().parseEntityId(initServiceMetaData.getEdm(), bindingLink, request.getRawRequestUri());
+	   	    	  	 createResourceLink(target,workEntityClass, entitySetResource);
+	    		 }
+	    	}
+	      } 
+	      else 
+	      if(handleSingleEntity)  {
+	    	  UriResourceEntitySet entitySetResource = initODataItem.createUriHelper().parseEntityId(initServiceMetaData.getEdm(), link.getBindingLink(), request.getRawRequestUri());
+	    	  createResourceLink(target,workEntityClass, entitySetResource);
+	      }
+	    }
 	  serializeEntity(response, responseFormat, edmEntitySet, edmEntityType, actualODataEntity);
 	}
 
 	
+	private void createResourceLink(Object sourceResource, Class<?> sourceResourceClass,UriResourceEntitySet uriEntitySet) throws ODataApplicationException {
+	   // First, I need to find related entity using keys.	 
+	   EdmEntitySet edmEntitySet   		 = uriEntitySet.getEntitySet();
+	   EdmEntityType edmEntityType 		 = edmEntitySet.getEntityType();
+	   Object businessService      		 = instantiateDataService(edmEntityType);
+	   Class<?>  businessServiceClass    = detectDataServiceClass(edmEntitySet.getEntityType());
+	   Class<?>  relatedEntityClass   	 = edmProvider.findActualClass(edmEntityType.getFullQualifiedName());
+	   List<ODataParameter> keys  		 = getKeyPredicates(uriEntitySet,relatedEntityClass);
+	   Object relatedEntity				 = invokeMethod(businessService, businessServiceClass, relatedEntityClass, ODataReadEntity.class,keys);
+	   // Second, I have to search on the sourceResource controller a method suitable for binding,
+	   // i.e a method annotated with @ODataCreateResourceLink and entity=sourceResource.class, relatedEntity=relatedEntity.class
+	   invokeCreateLinkMethod(businessService,businessServiceClass, sourceResourceClass, relatedEntityClass, ODataCreateResourceLink.class,sourceResource,relatedEntity);
+	}
+
 	/****
 	 * Processes a generic read request.
 	 * 
@@ -603,9 +648,43 @@ public class ODataServiceHandler implements EntityCollectionProcessor, EntityPro
 	}
 	
 	
+	private Object invokeCreateLinkMethod(Object businessService,Class<?> businessServiceClass, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, Object targetEntity) throws ODataApplicationException {
+		Method targetMethod = null;
+		for(Method method : businessServiceClass.getDeclaredMethods()) {
+			Class<?>[] mParams  = method.getParameterTypes();
+			// Target method must be annotated with required annotation
+			boolean annotationPresent = method.isAnnotationPresent(annotation);
+			if(annotationPresent) {
+				boolean matches  		  = annotationPresent; 
+				Class<?>   returnType	  = method.getReturnType();
+				// Reading collections of entities
+				if(annotation.equals(ODataCreateResourceLink.class)) {
+					ODataCreateResourceLink actualAnnotation = (ODataCreateResourceLink) method.getAnnotation(annotation); 
+					matches			&= actualAnnotation.entity().equals(sourceEntityClass);
+					matches			&= actualAnnotation.relatedEntity().equals(destinationEntityClass);
+					if(matches) {
+						targetMethod = method;
+						break;
+					}
+				}
+			}
+		}
+		if(targetMethod == null) {
+			throw createException("No method found to process request", HttpStatusCode.BAD_REQUEST);
+		}
+		try {
+			return targetMethod.invoke(businessService, masterEntity, targetEntity);
+		}
+		catch(Exception e) {
+			throw createException("An error occurred while invoking method "+targetMethod.getName()+" on class "+businessService.getClass().getName()+"; original error is "+e.getMessage(),HttpStatusCode.INTERNAL_SERVER_ERROR);
+		}
+	}
+	
+	
+	
 	private Object invokeNavigationMethod(Object businessService,Class<?> businessServiceClass, Class<?> sourceEntityClass, Class<?> destinationEntityClass, Class<? extends Annotation> annotation, Object masterEntity, List<ODataParameter> params) throws ODataApplicationException {
 		Method targetMethod = null;
-		for(Method method : businessService.getClass().getDeclaredMethods()) {
+		for(Method method : businessServiceClass.getDeclaredMethods()) {
 			Class<?>[] mParams  = method.getParameterTypes();
 			// Target method must be annotated with required annotation
 			boolean annotationPresent = method.isAnnotationPresent(annotation);
